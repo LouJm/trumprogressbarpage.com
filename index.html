@@ -1,9 +1,278 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Test</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Trump's Presidency Countdown</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@700&display=swap');
+
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    width: 100%;
+    gap: 0;
+  }
+
+  /* ── Text ── */
+  .headline {
+    text-align: center;
+    font-size: clamp(18px, 3.2vw, 52px);
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+    margin-bottom: clamp(16px, 2.5vh, 40px);
+    z-index: 10;
+  }
+
+  .headline .row {
+    display: block;
+  }
+
+  /* Odometer container */
+  .odometer {
+    display: inline-flex;
+    align-items: baseline;
+    color: #FD9F0F;
+    overflow: hidden;
+    vertical-align: baseline;
+    line-height: 1;
+  }
+
+  .digit-col {
+    display: inline-flex;
+    flex-direction: column;
+    height: 1em;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .digit-col .digit-strip {
+    display: flex;
+    flex-direction: column;
+    transition: transform 1.8s cubic-bezier(0.25, 0.1, 0.1, 1);
+  }
+
+  .digit-col .digit-strip span {
+    display: block;
+    height: 1em;
+    line-height: 1;
+  }
+
+  /* ── Silhouette ── */
+  .sil-wrap {
+    position: relative;
+    /* height set by JS based on viewport */
+    flex-shrink: 0;
+  }
+
+  .sil-wrap img {
+    display: block;
+    height: 100%;
+    width: auto;
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    user-select: none;
+    pointer-events: none;
+  }
+
+  #sil-ghost {
+    opacity: 0.1;
+    filter: brightness(0.5);
+  }
+
+  #sil-filled {
+    /* clip-path updated by JS */
+    clip-path: inset(0% 0 0 0);
+  }
+</style>
 </head>
 <body>
-    <h1>Site is working</h1>
+
+<div class="page">
+
+  <div class="headline">
+    <span class="row">Trump's presidency is</span>
+    <span class="row">
+      <span class="odometer" id="odometer"></span>
+      <span style="color:#fff"> complete.</span>
+    </span>
+  </div>
+
+  <div class="sil-wrap" id="sil-wrap">
+    <img id="sil-ghost" src="uploads/trump_silhouette_filled.png" alt="">
+    <img id="sil-filled" src="uploads/trump_silhouette_filled.png" alt="">
+  </div>
+
+</div>
+
+<script>
+  // ── Date calculation ──
+  const START = new Date('2025-01-20T00:00:00');
+  const END   = new Date('2029-01-20T00:00:00');
+
+  function getPct() {
+    const now = new Date();
+    const total = END - START;
+    const done  = now - START;
+    return Math.max(0, Math.min(done / total, 1)) * 100;
+  }
+
+  // ── Layout sizing ──
+  const silWrap = document.getElementById('sil-wrap');
+  const silFilled = document.getElementById('sil-filled');
+  const silGhost  = document.getElementById('sil-ghost');
+
+  function setSilHeight() {
+    // Take up as much vertical space as possible below the headline
+    const headline = document.querySelector('.headline');
+    const headH = headline.getBoundingClientRect().height;
+    const headMargin = parseFloat(getComputedStyle(headline).marginBottom) || 0;
+    const available = window.innerHeight - headH - headMargin - 20;
+    const h = Math.max(200, Math.min(available, window.innerHeight * 0.78));
+    silWrap.style.height = h + 'px';
+    silWrap.style.width  = '100vw';
+  }
+  setSilHeight();
+  window.addEventListener('resize', setSilHeight);
+
+  // ── Odometer ──
+  const DIGITS_MAP = ['0','1','2','3','4','5','6','7','8','9'];
+
+  function buildOdometer(str) {
+    // str like "31.28%"
+    const odometer = document.getElementById('odometer');
+    odometer.innerHTML = '';
+    for (const ch of str) {
+      if (ch === '.' || ch === '%') {
+        const span = document.createElement('span');
+        span.textContent = ch;
+        span.style.color = '#FD9F0F';
+        odometer.appendChild(span);
+      } else {
+        const col = document.createElement('span');
+        col.className = 'digit-col';
+        col.dataset.char = ch;
+
+        const strip = document.createElement('span');
+        strip.className = 'digit-strip';
+
+        // Build 0–9 list
+        for (const d of DIGITS_MAP) {
+          const s = document.createElement('span');
+          s.textContent = d;
+          strip.appendChild(s);
+        }
+
+        col.appendChild(strip);
+        odometer.appendChild(col);
+      }
+    }
+  }
+
+  function setOdometerDigit(col, digit) {
+    const idx = parseInt(digit, 10);
+    const strip = col.querySelector('.digit-strip');
+    strip.style.transform = `translateY(-${idx}em)`;
+  }
+
+  function animateOdometer(targetStr) {
+    // targetStr like "31.28%"
+    const odometer = document.getElementById('odometer');
+    let colIdx = 0;
+    for (const ch of targetStr) {
+      if (ch !== '.' && ch !== '%') {
+        const cols = odometer.querySelectorAll('.digit-col');
+        if (cols[colIdx]) {
+          // Start from 0, animate to target
+          setOdometerDigit(cols[colIdx], ch);
+          colIdx++;
+        }
+      }
+    }
+  }
+
+  // ── Silhouette drain ──
+  // Drains from TOP: clip-path inset(pct% 0 0 0)
+  // At 0%: fully visible (no clip)
+  // At 31.28%: top 31.28% clipped away
+  function setDrain(pct) {
+    silFilled.style.clipPath = `inset(${pct.toFixed(4)}% 0 0 0)`;
+  }
+
+  // ── Animation on load ──
+  const TARGET = getPct();
+  const pctStr = TARGET.toFixed(2) + '%';
+
+  // Build odometer structure at 0
+  const zeroStr = '00.00%';
+  buildOdometer(pctStr); // build with right character count
+
+  // Set all digits to 0 initially (no transition)
+  document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+    strip.style.transition = 'none';
+    strip.style.transform = 'translateY(0)';
+  });
+
+  // Start drain from 0 (fully visible)
+  setDrain(0);
+
+  // Trigger animation after a short delay
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      // Re-enable transitions
+      document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+        strip.style.transition = 'transform 2.2s cubic-bezier(0.25, 0.1, 0.1, 1)';
+      });
+
+      // Animate odometer digits
+      animateOdometer(pctStr);
+
+      // Animate drain with easing
+      const DURATION = 3000;
+      const startTime = performance.now();
+
+      function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
+
+      function frame(now) {
+        const t = easeOut(Math.min((now - startTime) / DURATION, 1));
+        setDrain(t * TARGET);
+        if (t < 1) requestAnimationFrame(frame);
+        else setDrain(TARGET);
+      }
+      requestAnimationFrame(frame);
+    });
+  });
+
+  // ── Update live every minute ──
+  setInterval(() => {
+    const pct = getPct();
+    const str = pct.toFixed(2) + '%';
+    document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+      strip.style.transition = 'transform 1s ease';
+    });
+    animateOdometer(str);
+    setDrain(pct);
+  }, 60000);
+</script>
+
 </body>
 </html>
