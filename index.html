@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Trump's Presidency Countdown</title>
+<link rel="icon" type="image/png" href="circleLogo.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@700&display=swap');
 
@@ -93,8 +94,12 @@
     pointer-events: none;
   }
 
+  #sil-empty {
+    opacity: 1;
+  }
+
   #sil-filled {
-    clip-path: inset(0% 0 0 0);
+    clip-path: inset(100% 0 0 0);
   }
 
   /* ── Instagram floating button ── */
@@ -138,6 +143,9 @@
   </div>
 
   <div class="sil-wrap" id="sil-wrap">
+    <!-- Empty silhouette always fully visible underneath -->
+    <img id="sil-empty"  src="trump_silhouette_empty.png"  alt="">
+    <!-- Filled silhouette reveals upward to show progress -->
     <img id="sil-filled" src="trump_silhouette_filled.png" alt="">
   </div>
 
@@ -154,11 +162,9 @@
 
 <script>
   // ── Date calculation (Washington DC = Eastern Time) ──
-  // Next inauguration: January 20, 2029 at 12:01 AM ET
-  // We use a fixed ISO string with ET offset.
-  // ET is UTC-5 (EST) in January, so 12:01 AM ET = 05:01 UTC
-  const START = new Date('2025-01-20T05:01:00Z'); // Jan 20 2025 12:01 AM ET
-  const END   = new Date('2029-01-20T05:01:00Z'); // Jan 20 2029 12:01 AM ET
+  // Jan 20 2025 12:01 AM ET = 05:01 UTC (EST = UTC-5)
+  const START = new Date('2025-01-20T05:01:00Z');
+  const END   = new Date('2029-01-20T05:01:00Z');
 
   function getPct() {
     const now   = new Date();
@@ -172,8 +178,8 @@
   const silFilled = document.getElementById('sil-filled');
 
   function setSilHeight() {
-    const headline  = document.querySelector('.headline');
-    const headH     = headline.getBoundingClientRect().height;
+    const headline   = document.querySelector('.headline');
+    const headH      = headline.getBoundingClientRect().height;
     const headMargin = parseFloat(getComputedStyle(headline).marginBottom) || 0;
     const available  = window.innerHeight - headH - headMargin - 20;
     const h = Math.max(200, Math.min(available, window.innerHeight * 0.78));
@@ -198,7 +204,6 @@
       } else {
         const col = document.createElement('span');
         col.className = 'digit-col';
-        col.dataset.char = ch;
 
         const strip = document.createElement('span');
         strip.className = 'digit-strip';
@@ -235,9 +240,14 @@
     }
   }
 
-  // ── Silhouette fill (drains from top) ──
-  function setDrain(pct) {
-    silFilled.style.clipPath = `inset(${pct.toFixed(4)}% 0 0 0)`;
+  // ── Silhouette fill ──
+  // Empty image always fully visible.
+  // Filled image clips from top: inset(clipTop% 0 0 0)
+  // 0% complete → clipTop=100 → filled fully hidden
+  // 100% complete → clipTop=0 → filled fully visible
+  function setFill(pct) {
+    const clipTop = 100 - pct;
+    silFilled.style.clipPath = `inset(${clipTop.toFixed(4)}% 0 0 0)`;
   }
 
   // ── Audio ──
@@ -266,7 +276,8 @@
     strip.style.transform  = 'translateY(0)';
   });
 
-  setDrain(0);
+  // Start with filled fully hidden
+  setFill(0);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -280,7 +291,7 @@
 
       animateOdometer(pctStr);
 
-      // Animate drain
+      // Animate fill upward
       const DURATION = 3000;
       const startTime = performance.now();
 
@@ -288,16 +299,15 @@
 
       function frame(now) {
         const t = easeOut(Math.min((now - startTime) / DURATION, 1));
-        setDrain(t * TARGET);
+        setFill(t * TARGET);
         if (t < 1) requestAnimationFrame(frame);
-        else setDrain(TARGET);
+        else setFill(TARGET);
       }
       requestAnimationFrame(frame);
     });
   });
 
   // ── Live updates every minute ──
-  // Track last displayed percentage to detect a 0.01 tick
   let lastDisplayedStr = pctStr;
 
   setInterval(() => {
@@ -309,9 +319,8 @@
     });
 
     animateOdometer(str);
-    setDrain(pct);
+    setFill(pct);
 
-    // Play tick if the displayed percentage has changed
     if (str !== lastDisplayedStr) {
       playTick();
       lastDisplayedStr = str;
