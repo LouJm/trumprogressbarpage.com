@@ -78,7 +78,6 @@
   /* ── Silhouette ── */
   .sil-wrap {
     position: relative;
-    /* height set by JS based on viewport */
     flex-shrink: 0;
   }
 
@@ -94,14 +93,35 @@
     pointer-events: none;
   }
 
-  #sil-ghost {
-    opacity: 0.1;
-    filter: brightness(0.5);
+  #sil-filled {
+    clip-path: inset(0% 0 0 0);
   }
 
-  #sil-filled {
-    /* clip-path updated by JS */
-    clip-path: inset(0% 0 0 0);
+  /* ── Instagram floating button ── */
+  .ig-link {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    overflow: hidden;
+    display: block;
+    z-index: 100;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .ig-link:hover {
+    transform: scale(1.08);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+  }
+
+  .ig-link img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 </style>
 </head>
@@ -118,35 +138,44 @@
   </div>
 
   <div class="sil-wrap" id="sil-wrap">
-    <img id="sil-ghost" src="trump_silhouette_empty.png" alt="">
     <img id="sil-filled" src="trump_silhouette_filled.png" alt="">
   </div>
 
 </div>
 
+<!-- Instagram floating link -->
+<a class="ig-link" href="https://www.instagram.com/trumpprogressbar/" target="_blank" rel="noopener">
+  <img src="circleLogo.png" alt="Instagram">
+</a>
+
+<!-- Audio -->
+<audio id="chime" src="newChime.wav" preload="auto"></audio>
+<audio id="tick"  src="tick.wav"    preload="auto"></audio>
+
 <script>
-  // ── Date calculation ──
-  const START = new Date('2025-01-20T00:00:00');
-  const END   = new Date('2029-01-20T00:00:00');
+  // ── Date calculation (Washington DC = Eastern Time) ──
+  // Next inauguration: January 20, 2029 at 12:01 AM ET
+  // We use a fixed ISO string with ET offset.
+  // ET is UTC-5 (EST) in January, so 12:01 AM ET = 05:01 UTC
+  const START = new Date('2025-01-20T05:01:00Z'); // Jan 20 2025 12:01 AM ET
+  const END   = new Date('2029-01-20T05:01:00Z'); // Jan 20 2029 12:01 AM ET
 
   function getPct() {
-    const now = new Date();
+    const now   = new Date();
     const total = END - START;
     const done  = now - START;
     return Math.max(0, Math.min(done / total, 1)) * 100;
   }
 
   // ── Layout sizing ──
-  const silWrap = document.getElementById('sil-wrap');
+  const silWrap   = document.getElementById('sil-wrap');
   const silFilled = document.getElementById('sil-filled');
-  const silGhost  = document.getElementById('sil-ghost');
 
   function setSilHeight() {
-    // Take up as much vertical space as possible below the headline
-    const headline = document.querySelector('.headline');
-    const headH = headline.getBoundingClientRect().height;
+    const headline  = document.querySelector('.headline');
+    const headH     = headline.getBoundingClientRect().height;
     const headMargin = parseFloat(getComputedStyle(headline).marginBottom) || 0;
-    const available = window.innerHeight - headH - headMargin - 20;
+    const available  = window.innerHeight - headH - headMargin - 20;
     const h = Math.max(200, Math.min(available, window.innerHeight * 0.78));
     silWrap.style.height = h + 'px';
     silWrap.style.width  = '100vw';
@@ -158,7 +187,6 @@
   const DIGITS_MAP = ['0','1','2','3','4','5','6','7','8','9'];
 
   function buildOdometer(str) {
-    // str like "31.28%"
     const odometer = document.getElementById('odometer');
     odometer.innerHTML = '';
     for (const ch of str) {
@@ -175,7 +203,6 @@
         const strip = document.createElement('span');
         strip.className = 'digit-strip';
 
-        // Build 0–9 list
         for (const d of DIGITS_MAP) {
           const s = document.createElement('span');
           s.textContent = d;
@@ -189,20 +216,18 @@
   }
 
   function setOdometerDigit(col, digit) {
-    const idx = parseInt(digit, 10);
+    const idx   = parseInt(digit, 10);
     const strip = col.querySelector('.digit-strip');
     strip.style.transform = `translateY(-${idx}em)`;
   }
 
   function animateOdometer(targetStr) {
-    // targetStr like "31.28%"
     const odometer = document.getElementById('odometer');
     let colIdx = 0;
     for (const ch of targetStr) {
       if (ch !== '.' && ch !== '%') {
         const cols = odometer.querySelectorAll('.digit-col');
         if (cols[colIdx]) {
-          // Start from 0, animate to target
           setOdometerDigit(cols[colIdx], ch);
           colIdx++;
         }
@@ -210,43 +235,52 @@
     }
   }
 
-  // ── Silhouette drain ──
-  // Drains from TOP: clip-path inset(pct% 0 0 0)
-  // At 0%: fully visible (no clip)
-  // At 31.28%: top 31.28% clipped away
+  // ── Silhouette fill (drains from top) ──
   function setDrain(pct) {
     silFilled.style.clipPath = `inset(${pct.toFixed(4)}% 0 0 0)`;
   }
 
-  // ── Animation on load ──
+  // ── Audio ──
+  const chimeAudio = document.getElementById('chime');
+  const tickAudio  = document.getElementById('tick');
+
+  function playChime() {
+    chimeAudio.currentTime = 0;
+    chimeAudio.play().catch(() => {});
+  }
+
+  function playTick() {
+    tickAudio.currentTime = 0;
+    tickAudio.play().catch(() => {});
+  }
+
+  // ── Boot animation ──
   const TARGET = getPct();
   const pctStr = TARGET.toFixed(2) + '%';
 
-  // Build odometer structure at 0
-  const zeroStr = '00.00%';
-  buildOdometer(pctStr); // build with right character count
+  buildOdometer(pctStr);
 
-  // Set all digits to 0 initially (no transition)
+  // Start digits at 0, no transition
   document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
     strip.style.transition = 'none';
-    strip.style.transform = 'translateY(0)';
+    strip.style.transform  = 'translateY(0)';
   });
 
-  // Start drain from 0 (fully visible)
   setDrain(0);
 
-  // Trigger animation after a short delay
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
+      // Play chime at start of animation
+      playChime();
+
       // Re-enable transitions
       document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
         strip.style.transition = 'transform 2.2s cubic-bezier(0.25, 0.1, 0.1, 1)';
       });
 
-      // Animate odometer digits
       animateOdometer(pctStr);
 
-      // Animate drain with easing
+      // Animate drain
       const DURATION = 3000;
       const startTime = performance.now();
 
@@ -262,15 +296,26 @@
     });
   });
 
-  // ── Update live every minute ──
+  // ── Live updates every minute ──
+  // Track last displayed percentage to detect a 0.01 tick
+  let lastDisplayedStr = pctStr;
+
   setInterval(() => {
     const pct = getPct();
     const str = pct.toFixed(2) + '%';
+
     document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
       strip.style.transition = 'transform 1s ease';
     });
+
     animateOdometer(str);
     setDrain(pct);
+
+    // Play tick if the displayed percentage has changed
+    if (str !== lastDisplayedStr) {
+      playTick();
+      lastDisplayedStr = str;
+    }
   }, 60000);
 </script>
 
