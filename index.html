@@ -97,7 +97,7 @@
     pointer-events: none;
   }
 
-  /* Water wobble keyframes — subtler (roughly 50% of previous intensity). */
+  /* Water wobble keyframes — subtle */
   @keyframes waterWobble {
     0%   { transform: translateX(-50%) skewX(0deg)      scaleX(1);      }
     10%  { transform: translateX(-50%) skewX(-1deg)     scaleX(1.005);  }
@@ -171,9 +171,8 @@
   <img src="circleLogo.png" alt="Instagram">
 </a>
 
-<!-- Audio -->
-<audio id="chime" src="newChime.wav" preload="auto"></audio>
-<audio id="tick"  src="tick.wav"    preload="auto"></audio>
+<!-- Audio (tick only; chime removed) -->
+<audio id="tick" src="tick.wav" preload="auto"></audio>
 
 <script>
   // ── Constants ──
@@ -264,7 +263,6 @@
   // ── Color interpolation based on displacement ──
   // 0 displacement  → orange (#FD9F0F)
   // ≥ threshold     → fully red (#FF3B30)
-  // In between, linear interpolation.
   const ORANGE = { r: 0xFD, g: 0x9F, b: 0x0F };
   const RED    = { r: 0xFF, g: 0x3B, b: 0x30 };
   const DISPLACE_THRESHOLD = 3;
@@ -279,16 +277,12 @@
   }
 
   // ── Drift state ──
-  // The user pushes displayedPct UP by clicking (draining the silhouette).
-  // When they stop clicking, displayedPct creeps monotonically back toward realPct
-  // via exponential decay — no overshoot, no oscillation, like a current pulling
-  // them back once they stop swimming.
   let realPct      = getRealPct();
   let displayedPct = realPct;
 
-  // Click bump sequence. Generous enough that rapid clicking can realistically
-  // drive the fill all the way down to 0.01 (i.e. displayedPct up to ~99.99).
-  // After the array is exhausted, every subsequent click keeps adding 1 point.
+  // Click bump sequence. Generous enough that rapid clicking can drive the fill
+  // all the way down to 0.01 (i.e. displayedPct up to ~99.99). After the array
+  // is exhausted, every subsequent click keeps adding 1 point.
   const IMPULSE_SEQUENCE   = [15, 10, 7, 5, 4, 3, 2.5, 2, 1.5, 1];
   const IMPULSE_RESET_MS   = 8000;
   let   impulseIndex       = 0;
@@ -296,8 +290,6 @@
   let   impulseResetTimer  = null;
 
   // Exponential creep: each second, this fraction of the displacement remains.
-  // Higher = slower creep back, so rapid clicks accumulate more effectively.
-  // 0.55 → ~45% of the gap closes per second.
   const CREEP_RETENTION_PER_SEC = 0.55;
 
   let lastFrameTime  = null;
@@ -314,7 +306,6 @@
     const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
     lastFrameTime = now;
 
-    // Exponential decay toward realPct. Frame-rate independent.
     const retain = Math.pow(CREEP_RETENTION_PER_SEC, dt);
     displayedPct = realPct + (displayedPct - realPct) * retain;
     displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct));
@@ -341,7 +332,6 @@
   silWrap.addEventListener('click', () => {
     const now = Date.now();
 
-    // Reset the sequence if the user has been idle for a while.
     if (now - lastClickTime > IMPULSE_RESET_MS) {
       impulseIndex = 0;
     }
@@ -352,104 +342,91 @@
       impulseIndex = 0;
     }, IMPULSE_RESET_MS);
 
-    // Pick this click's bump (clamped to the final value once past the array end).
     const bump = IMPULSE_SEQUENCE[Math.min(impulseIndex, IMPULSE_SEQUENCE.length - 1)];
     impulseIndex++;
 
-    // Drain a bit more: push displayedPct UP from its CURRENT value.
-    // Silhouette becomes less filled, text goes higher — and immediately turns red.
     displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct + bump));
 
-    // Wobble — restart animation cleanly each click so both images shake in lockstep.
     silWrap.classList.remove('wobble');
     if (wobbleTimer) clearTimeout(wobbleTimer);
-    void silWrap.offsetWidth; // force reflow so animation restarts
+    void silWrap.offsetWidth;
     silWrap.classList.add('wobble');
     wobbleTimer = setTimeout(() => silWrap.classList.remove('wobble'), 750);
 
-    // Paint the new displaced frame immediately, then let the creep take over.
     renderSilhouette(displayedPct);
     renderOdometer(displayedPct);
     updateOdometerColor();
     startPhysics();
   });
 
-  // ── Audio ──
-  const chimeAudio = document.getElementById('chime');
-  const tickAudio  = document.getElementById('tick');
-
-  function playChime() {
-    chimeAudio.currentTime = 0;
-    chimeAudio.play().catch(err => console.warn('chime:', err.name, err.message));
-  }
+  // ── Audio (tick only) ──
+  const tickAudio = document.getElementById('tick');
 
   function playTick() {
     tickAudio.currentTime = 0;
     tickAudio.play().catch(() => {});
   }
 
-  // Try to play the chime at boot. If the browser blocks autoplay, queue it
-  // to fire on the user's first interaction instead.
-  let chimePending = false;
-  function tryBootChime() {
-    chimeAudio.currentTime = 0;
-    chimeAudio.play().catch(err => {
-      console.warn('chime blocked at boot, waiting for interaction:', err.name);
-      chimePending = true;
-    });
-  }
-  function fireChimeOnInteraction() {
-    if (!chimePending) return;
-    chimePending = false;
-    chimeAudio.currentTime = 0;
-    chimeAudio.play().catch(err => console.warn('chime still failed:', err.name));
-  }
-  document.addEventListener('pointerdown', fireChimeOnInteraction, { once: true });
-  document.addEventListener('keydown',     fireChimeOnInteraction, { once: true });
-  document.addEventListener('touchstart',  fireChimeOnInteraction, { once: true });
-
   // ── Boot animation ──
-  const TARGET = getRealPct();
-  const pctStr = TARGET.toFixed(2) + '%';
+  // 1. Page loads showing 99.99% (silhouette fully drained, odometer maxed).
+  // 2. Holds there for HOLD_MS.
+  // 3. Then animates DOWN from 99.99% to the real current percentage over
+  //    DURATION ms, with the odometer rolling down in parallel.
+  const TARGET      = getRealPct();
+  const INTRO_START = CEILING;  // 99.99 — the visual "100%" moment
+  const HOLD_MS     = 200;
+  const DURATION    = 6000;     // silhouette drop, doubled from previous 3000
+  const ODOM_MS     = 4400;     // odometer roll, doubled from previous 2200
 
+  // The odometer structure is built from TARGET's string so the digit column
+  // count matches the final resting display (e.g. "31.42%" → 4 digit columns).
+  // INTRO_START at 99.99 fits the same column count, so we can render straight
+  // into it without restructuring.
+  const pctStr = TARGET.toFixed(2) + '%';
   buildOdometer(pctStr);
 
+  // Lock all digit strips with no transition while we set initial state.
   document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
     strip.style.transition = 'none';
-    strip.style.transform  = 'translateY(0)';
   });
 
-  renderSilhouette(0);
-  updateOdometerColor(); // displayed === real at boot → pure orange
+  // Initial paint: fully drained silhouette, odometer at 99.99%.
+  renderSilhouette(INTRO_START);
+  renderOdometer(INTRO_START);
+  updateOdometerColor();
 
+  // Wait for two frames so the initial state definitely paints, then start the
+  // hold timer, then kick off the drop-down animation.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      tryBootChime();
+      setTimeout(() => {
+        // Enable transitions for the odometer roll, then command the roll to TARGET.
+        document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+          strip.style.transition = `transform ${ODOM_MS}ms cubic-bezier(0.25, 0.1, 0.1, 1)`;
+        });
+        renderOdometer(TARGET);
 
-      document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
-        strip.style.transition = 'transform 2.2s cubic-bezier(0.25, 0.1, 0.1, 1)';
-      });
-      renderOdometer(TARGET);
+        // Animate the silhouette down from INTRO_START to TARGET in parallel.
+        const startTime = performance.now();
 
-      const DURATION  = 3000;
-      const startTime = performance.now();
+        function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
 
-      function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
-
-      function bootFrame(now) {
-        const t       = easeOut(Math.min((now - startTime) / DURATION, 1));
-        renderSilhouette(t * TARGET);
-        if (t < 1) {
-          requestAnimationFrame(bootFrame);
-        } else {
-          document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
-            strip.style.transition = 'none';
-          });
-          displayedPct = TARGET;
-          renderSilhouette(TARGET);
+        function bootFrame(now) {
+          const t   = easeOut(Math.min((now - startTime) / DURATION, 1));
+          const pct = INTRO_START - t * (INTRO_START - TARGET);
+          renderSilhouette(pct);
+          if (t < 1) {
+            requestAnimationFrame(bootFrame);
+          } else {
+            document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+              strip.style.transition = 'none';
+            });
+            displayedPct = TARGET;
+            renderSilhouette(TARGET);
+          }
         }
-      }
-      requestAnimationFrame(bootFrame);
+        requestAnimationFrame(bootFrame);
+      }, HOLD_MS);
     });
   });
 
