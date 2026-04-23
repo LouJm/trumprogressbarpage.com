@@ -46,7 +46,8 @@
     display: block;
   }
 
-  /* Odometer */
+  /* Odometer — color is driven inline from JS so the digits, dot, and % all
+     transition together between orange (#FD9F0F) and red (#FF3B30). */
   .odometer {
     display: inline-flex;
     align-items: baseline;
@@ -75,7 +76,9 @@
     line-height: 1;
   }
 
-  /* ── Silhouette ── */
+  /* ── Silhouette ──
+     DOM order below places sil-filled BEHIND sil-empty.
+     sil-empty is never clipped, so the outline is always fully visible. */
   .sil-wrap {
     position: relative;
     flex-shrink: 0;
@@ -94,18 +97,19 @@
     pointer-events: none;
   }
 
-  /* Water wobble keyframes — dampening skew oscillation */
+  /* Water wobble keyframes — 50% intensity */
   @keyframes waterWobble {
-    0%   { transform: translateX(-50%) skewX(0deg)     scaleX(1);    }
-    10%  { transform: translateX(-50%) skewX(-4deg)    scaleX(1.02); }
-    25%  { transform: translateX(-50%) skewX(3deg)     scaleX(0.99); }
-    40%  { transform: translateX(-50%) skewX(-2deg)    scaleX(1.01); }
-    55%  { transform: translateX(-50%) skewX(1.2deg)   scaleX(1);    }
-    70%  { transform: translateX(-50%) skewX(-0.6deg)  scaleX(1);    }
-    85%  { transform: translateX(-50%) skewX(0.3deg)   scaleX(1);    }
-    100% { transform: translateX(-50%) skewX(0deg)     scaleX(1);    }
+    0%   { transform: translateX(-50%) skewX(0deg)     scaleX(1);     }
+    10%  { transform: translateX(-50%) skewX(-2deg)    scaleX(1.01);  }
+    25%  { transform: translateX(-50%) skewX(1.5deg)   scaleX(0.995); }
+    40%  { transform: translateX(-50%) skewX(-1deg)    scaleX(1.005); }
+    55%  { transform: translateX(-50%) skewX(0.6deg)   scaleX(1);     }
+    70%  { transform: translateX(-50%) skewX(-0.3deg)  scaleX(1);     }
+    85%  { transform: translateX(-50%) skewX(0.15deg)  scaleX(1);     }
+    100% { transform: translateX(-50%) skewX(0deg)     scaleX(1);     }
   }
 
+  /* Both images shake identically so they stay locked together visually */
   .sil-wrap.wobble #sil-empty,
   .sil-wrap.wobble #sil-filled {
     animation: waterWobble 0.75s cubic-bezier(0.25, 0.1, 0.1, 1) forwards;
@@ -151,9 +155,13 @@
     </span>
   </div>
 
+  <!--
+    Filled goes FIRST (behind) so it can be clipped away like draining water.
+    Empty goes SECOND (on top) so the outline is always fully drawn on top.
+  -->
   <div class="sil-wrap" id="sil-wrap">
-    <img id="sil-empty"  src="trump_silhouette_empty.png"  alt="">
     <img id="sil-filled" src="trump_silhouette_filled.png" alt="">
+    <img id="sil-empty"  src="trump_silhouette_empty.png"  alt="">
   </div>
 
 </div>
@@ -181,11 +189,13 @@
     return Math.max(0, Math.min(done / total, 1)) * 100;
   }
 
-  // ── Layout sizing ──
+  // ── Element refs ──
   const silWrap   = document.getElementById('sil-wrap');
   const silEmpty  = document.getElementById('sil-empty');
   const silFilled = document.getElementById('sil-filled');
+  const odometer  = document.getElementById('odometer');
 
+  // ── Layout sizing ──
   function setSilHeight() {
     const headline   = document.querySelector('.headline');
     const headH      = headline.getBoundingClientRect().height;
@@ -199,23 +209,24 @@
   window.addEventListener('resize', setSilHeight);
 
   // ── Silhouette render ──
+  // Only the filled image is clipped. The empty outline is ALWAYS fully visible
+  // (and drawn on top via DOM order).
   function renderSilhouette(pct) {
     const clip = `inset(${pct.toFixed(4)}% 0 0 0)`;
-    silEmpty.style.clipPath  = clip;
     silFilled.style.clipPath = clip;
+    // silEmpty is intentionally never clipped.
   }
 
-  // ── Odometer ──
+  // ── Odometer build / render ──
   const DIGITS_MAP = ['0','1','2','3','4','5','6','7','8','9'];
 
   function buildOdometer(str) {
-    const odometer = document.getElementById('odometer');
     odometer.innerHTML = '';
     for (const ch of str) {
       if (ch === '.' || ch === '%') {
         const span = document.createElement('span');
         span.textContent = ch;
-        span.style.color = '#FD9F0F';
+        // No inline color — inherits from .odometer so it recolors with the digits.
         odometer.appendChild(span);
       } else {
         const col = document.createElement('span');
@@ -236,7 +247,6 @@
   function renderOdometer(pct) {
     const clamped = Math.max(FLOOR, Math.min(CEILING, pct));
     const str = clamped.toFixed(2);
-    const odometer = document.getElementById('odometer');
     const cols = odometer.querySelectorAll('.digit-col');
     let colIdx = 0;
     for (const ch of (str + '%')) {
@@ -251,20 +261,42 @@
     }
   }
 
-  // ── Physics state ──
+  // ── Color interpolation based on displacement ──
+  // 0 displacement  → orange (#FD9F0F)
+  // ≥ threshold     → fully red (#FF3B30)
+  // In between, linear interpolation.
+  const ORANGE = { r: 0xFD, g: 0x9F, b: 0x0F };
+  const RED    = { r: 0xFF, g: 0x3B, b: 0x30 };
+  const DISPLACE_THRESHOLD = 3;
+
+  function updateOdometerColor() {
+    const displacement = Math.abs(displayedPct - realPct);
+    const t = Math.min(1, displacement / DISPLACE_THRESHOLD);
+    const r = Math.round(ORANGE.r + (RED.r - ORANGE.r) * t);
+    const g = Math.round(ORANGE.g + (RED.g - ORANGE.g) * t);
+    const b = Math.round(ORANGE.b + (RED.b - ORANGE.b) * t);
+    odometer.style.color = `rgb(${r}, ${g}, ${b})`;
+  }
+
+  // ── Drift state ──
+  // The user pushes displayedPct UP by clicking (draining the silhouette).
+  // When they stop clicking, displayedPct creeps monotonically back toward realPct
+  // via exponential decay — no overshoot, no oscillation, like a current pulling
+  // them back once they stop swimming.
   let realPct      = getRealPct();
   let displayedPct = realPct;
-  let velocity     = 0;
 
-  const FIRST_IMPULSE    = 1.0;
-  const IMPULSE_DECAY    = 0.9;
-  const IMPULSE_RESET_MS = 8000;
-  let   nextImpulse      = FIRST_IMPULSE;
-  let   lastClickTime    = 0;
-  let   impulseResetTimer = null;
+  // Click bump sequence: first click adds 10 points, then 5, 2, 1, 0.5, 0.25, 0.1.
+  // After the end of the array, the smallest value is reused.
+  const IMPULSE_SEQUENCE   = [10, 5, 2, 1, 0.5, 0.25, 0.1];
+  const IMPULSE_RESET_MS   = 8000;
+  let   impulseIndex       = 0;
+  let   lastClickTime      = 0;
+  let   impulseResetTimer  = null;
 
-  const SPRING_STRENGTH = 4.0;
-  const DAMPING         = 0.85;
+  // Exponential creep: each second, this fraction of the displacement remains.
+  // 0.35 ≈ 65% of the gap closes per second → feels like a gentle but persistent current.
+  const CREEP_RETENTION_PER_SEC = 0.35;
 
   let lastFrameTime  = null;
   let physicsRunning = false;
@@ -280,25 +312,24 @@
     const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
     lastFrameTime = now;
 
-    const displacement = displayedPct - realPct;
-    velocity += -displacement * SPRING_STRENGTH * dt;
-    velocity *= Math.pow(DAMPING, dt * 60);
-
-    displayedPct += velocity * dt;
-    displayedPct  = Math.max(FLOOR, Math.min(CEILING, displayedPct));
+    // Exponential decay toward realPct. Frame-rate independent.
+    const retain = Math.pow(CREEP_RETENTION_PER_SEC, dt);
+    displayedPct = realPct + (displayedPct - realPct) * retain;
+    displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct));
 
     renderSilhouette(displayedPct);
     renderOdometer(displayedPct);
+    updateOdometerColor();
 
-    const settled = Math.abs(displayedPct - realPct) < 0.001 && Math.abs(velocity) < 0.001;
+    const settled = Math.abs(displayedPct - realPct) < 0.01;
     if (!settled) {
       requestAnimationFrame(physicsFrame);
     } else {
       displayedPct   = realPct;
-      velocity       = 0;
       physicsRunning = false;
       renderSilhouette(realPct);
       renderOdometer(realPct);
+      updateOdometerColor(); // snap to pure orange
     }
   }
 
@@ -308,28 +339,36 @@
   silWrap.addEventListener('click', () => {
     const now = Date.now();
 
+    // Reset the sequence if the user has been idle for a while.
     if (now - lastClickTime > IMPULSE_RESET_MS) {
-      nextImpulse = FIRST_IMPULSE;
+      impulseIndex = 0;
     }
     lastClickTime = now;
 
     if (impulseResetTimer) clearTimeout(impulseResetTimer);
     impulseResetTimer = setTimeout(() => {
-      nextImpulse = FIRST_IMPULSE;
+      impulseIndex = 0;
     }, IMPULSE_RESET_MS);
 
-    // Physics impulse
-    velocity   += nextImpulse * 3;
-    nextImpulse *= IMPULSE_DECAY;
+    // Pick this click's bump (clamped to the smallest value once past the array end).
+    const bump = IMPULSE_SEQUENCE[Math.min(impulseIndex, IMPULSE_SEQUENCE.length - 1)];
+    impulseIndex++;
 
-    // Water wobble — restart animation cleanly each click
+    // Drain a bit more: push displayedPct UP from its CURRENT value.
+    // Silhouette becomes less filled, text goes higher — and immediately turns red.
+    displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct + bump));
+
+    // Wobble — restart animation cleanly each click so both images shake in lockstep.
     silWrap.classList.remove('wobble');
     if (wobbleTimer) clearTimeout(wobbleTimer);
-    // Force reflow so animation restarts
-    void silWrap.offsetWidth;
+    void silWrap.offsetWidth; // force reflow so animation restarts
     silWrap.classList.add('wobble');
     wobbleTimer = setTimeout(() => silWrap.classList.remove('wobble'), 750);
 
+    // Paint the new displaced frame immediately, then let the creep take over.
+    renderSilhouette(displayedPct);
+    renderOdometer(displayedPct);
+    updateOdometerColor();
     startPhysics();
   });
 
@@ -359,6 +398,7 @@
   });
 
   renderSilhouette(0);
+  updateOdometerColor(); // displayed === real at boot → pure orange
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
@@ -405,6 +445,7 @@
       displayedPct = realPct;
       renderSilhouette(realPct);
       renderOdometer(realPct);
+      updateOdometerColor();
     }
   }, 60000);
 </script>
