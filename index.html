@@ -94,14 +94,21 @@
     pointer-events: none;
   }
 
-  #sil-filled {
-    /* clip-path controlled by JS — starts fully shown, drains from top */
-    clip-path: inset(0% 0 0 0);
-    transition: transform 0.08s ease;
+  /* Water wobble keyframes — dampening skew oscillation */
+  @keyframes waterWobble {
+    0%   { transform: translateX(-50%) skewX(0deg)     scaleX(1);    }
+    10%  { transform: translateX(-50%) skewX(-4deg)    scaleX(1.02); }
+    25%  { transform: translateX(-50%) skewX(3deg)     scaleX(0.99); }
+    40%  { transform: translateX(-50%) skewX(-2deg)    scaleX(1.01); }
+    55%  { transform: translateX(-50%) skewX(1.2deg)   scaleX(1);    }
+    70%  { transform: translateX(-50%) skewX(-0.6deg)  scaleX(1);    }
+    85%  { transform: translateX(-50%) skewX(0.3deg)   scaleX(1);    }
+    100% { transform: translateX(-50%) skewX(0deg)     scaleX(1);    }
   }
 
-  #sil-filled.pulse {
-    transform: translateX(-50%) scaleY(0.97);
+  .sil-wrap.wobble #sil-empty,
+  .sil-wrap.wobble #sil-filled {
+    animation: waterWobble 0.75s cubic-bezier(0.25, 0.1, 0.1, 1) forwards;
   }
 
   /* ── Instagram floating button ── */
@@ -145,9 +152,7 @@
   </div>
 
   <div class="sil-wrap" id="sil-wrap">
-    <!-- Empty silhouette always underneath at full opacity -->
-    <img id="sil-empty" src="trump_silhouette_empty.png" alt="">
-    <!-- Filled silhouette drains from top as time passes -->
+    <img id="sil-empty"  src="trump_silhouette_empty.png"  alt="">
     <img id="sil-filled" src="trump_silhouette_filled.png" alt="">
   </div>
 
@@ -164,9 +169,10 @@
 
 <script>
   // ── Constants ──
-  const START = new Date('2025-01-20T05:01:00Z');
-  const END   = new Date('2029-01-20T05:01:00Z');
-  const FLOOR = 0.01;
+  const START   = new Date('2025-01-20T05:01:00Z');
+  const END     = new Date('2029-01-20T05:01:00Z');
+  const FLOOR   = 0.01;
+  const CEILING = 99.99;
 
   function getRealPct() {
     const now   = new Date();
@@ -177,6 +183,7 @@
 
   // ── Layout sizing ──
   const silWrap   = document.getElementById('sil-wrap');
+  const silEmpty  = document.getElementById('sil-empty');
   const silFilled = document.getElementById('sil-filled');
 
   function setSilHeight() {
@@ -192,18 +199,13 @@
   window.addEventListener('resize', setSilHeight);
 
   // ── Silhouette render ──
-  // Starts full, drains from top.
-  // realPct=0 → inset(100% 0 0 0) fully drained
-  // realPct=100 → inset(0% 0 0 0) fully filled
-  // But we're ~31% through, so silhouette should be ~31% drained from top
-  // i.e. clipTop = 100 - displayedPct ... wait, we want:
-  // more complete = more drained = larger clipTop
-  // clipTop = realPct (31% complete → top 31% clipped away)
   function renderSilhouette(pct) {
-    silFilled.style.clipPath = `inset(${pct.toFixed(4)}% 0 0 0)`;
+    const clip = `inset(${pct.toFixed(4)}% 0 0 0)`;
+    silEmpty.style.clipPath  = clip;
+    silFilled.style.clipPath = clip;
   }
 
-  // ── Odometer (CSS-transition-free, driven by rAF physics loop) ──
+  // ── Odometer ──
   const DIGITS_MAP = ['0','1','2','3','4','5','6','7','8','9'];
 
   function buildOdometer(str) {
@@ -232,10 +234,10 @@
   }
 
   function renderOdometer(pct) {
-    const str = Math.max(FLOOR, pct).toFixed(2);
+    const clamped = Math.max(FLOOR, Math.min(CEILING, pct));
+    const str = clamped.toFixed(2);
     const odometer = document.getElementById('odometer');
     const cols = odometer.querySelectorAll('.digit-col');
-    // str is like "31.28", chars: 3,1,.,2,8
     let colIdx = 0;
     for (const ch of (str + '%')) {
       if (ch !== '.' && ch !== '%') {
@@ -251,92 +253,82 @@
 
   // ── Physics state ──
   let realPct      = getRealPct();
-  let displayedPct = realPct;  // what's shown
-  let velocity     = 0;        // % per second, positive = draining more (going down)
+  let displayedPct = realPct;
+  let velocity     = 0;
 
-  // Click impulse state
-  const FIRST_IMPULSE    = 1.0;   // % drop on first click
-  const IMPULSE_DECAY    = 0.9;   // each click = 90% of last
-  const IMPULSE_RESET_MS = 8000;  // reset after 8s idle
+  const FIRST_IMPULSE    = 1.0;
+  const IMPULSE_DECAY    = 0.9;
+  const IMPULSE_RESET_MS = 8000;
   let   nextImpulse      = FIRST_IMPULSE;
   let   lastClickTime    = 0;
   let   impulseResetTimer = null;
 
-  // Spring / gravity constants
-  const SPRING_STRENGTH = 4.0;   // how hard it pulls back to realPct (per second)
-  const DAMPING         = 0.85;  // velocity damping per frame (friction)
+  const SPRING_STRENGTH = 4.0;
+  const DAMPING         = 0.85;
 
-  // ── Physics loop ──
-  let lastFrameTime = null;
+  let lastFrameTime  = null;
   let physicsRunning = false;
 
   function startPhysics() {
     if (physicsRunning) return;
     physicsRunning = true;
-    lastFrameTime = performance.now();
+    lastFrameTime  = performance.now();
     requestAnimationFrame(physicsFrame);
   }
 
   function physicsFrame(now) {
-    const dt = Math.min((now - lastFrameTime) / 1000, 0.1); // seconds, capped
+    const dt = Math.min((now - lastFrameTime) / 1000, 0.1);
     lastFrameTime = now;
 
-    // Spring force pulling displayedPct back toward realPct
-    const delta = realPct - displayedPct; // positive = need to go up (drain more)
-    // We want displayedPct to move toward realPct
-    // velocity is "extra drain" — positive means showing more drained than real
-    // Spring pulls velocity toward 0 and displayedPct toward realPct
-    velocity += delta * SPRING_STRENGTH * dt * -1; // pulls against displacement
-    velocity *= Math.pow(DAMPING, dt * 60);         // damping
+    const displacement = displayedPct - realPct;
+    velocity += -displacement * SPRING_STRENGTH * dt;
+    velocity *= Math.pow(DAMPING, dt * 60);
 
-    displayedPct += -velocity * dt; // apply velocity
+    displayedPct += velocity * dt;
+    displayedPct  = Math.max(FLOOR, Math.min(CEILING, displayedPct));
 
-    // Clamp to floor and ceiling
-    displayedPct = Math.max(FLOOR, Math.min(100, displayedPct));
-
-    // Render
     renderSilhouette(displayedPct);
     renderOdometer(displayedPct);
 
-    // Keep running if not settled
     const settled = Math.abs(displayedPct - realPct) < 0.001 && Math.abs(velocity) < 0.001;
     if (!settled) {
       requestAnimationFrame(physicsFrame);
     } else {
-      displayedPct = realPct;
-      velocity = 0;
+      displayedPct   = realPct;
+      velocity       = 0;
+      physicsRunning = false;
       renderSilhouette(realPct);
       renderOdometer(realPct);
-      physicsRunning = false;
     }
   }
 
   // ── Click handler ──
+  let wobbleTimer = null;
+
   silWrap.addEventListener('click', () => {
     const now = Date.now();
 
-    // Reset impulse if idle too long
     if (now - lastClickTime > IMPULSE_RESET_MS) {
       nextImpulse = FIRST_IMPULSE;
     }
     lastClickTime = now;
 
-    // Clear any pending reset timer
     if (impulseResetTimer) clearTimeout(impulseResetTimer);
     impulseResetTimer = setTimeout(() => {
       nextImpulse = FIRST_IMPULSE;
     }, IMPULSE_RESET_MS);
 
-    // Apply downward impulse (increase velocity downward = decrease displayedPct)
-    // velocity positive = displayedPct moving down (showing less progress)
-    velocity += nextImpulse * 3; // multiply for snappy feel
-
-    // Decay next impulse
+    // Physics impulse
+    velocity   += nextImpulse * 3;
     nextImpulse *= IMPULSE_DECAY;
 
-    // Pulse animation on silhouette
-    silFilled.classList.add('pulse');
-    setTimeout(() => silFilled.classList.remove('pulse'), 120);
+    // Water wobble — restart animation cleanly each click
+    silWrap.classList.remove('wobble');
+    if (wobbleTimer) clearTimeout(wobbleTimer);
+    // Force reflow so animation restarts
+    void silWrap.offsetWidth;
+    silWrap.classList.add('wobble');
+    wobbleTimer = setTimeout(() => silWrap.classList.remove('wobble'), 750);
 
     startPhysics();
   });
@@ -356,44 +348,38 @@
   }
 
   // ── Boot animation ──
-  const TARGET  = getRealPct();
-  const pctStr  = TARGET.toFixed(2) + '%';
+  const TARGET = getRealPct();
+  const pctStr = TARGET.toFixed(2) + '%';
 
   buildOdometer(pctStr);
 
-  // Set all digit strips to 0 with no transition initially
   document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
     strip.style.transition = 'none';
     strip.style.transform  = 'translateY(0)';
   });
 
-  // Start silhouette fully filled (0% clipped)
   renderSilhouette(0);
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       playChime();
 
-      // Give digits a CSS transition just for the boot animation
       document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
         strip.style.transition = 'transform 2.2s cubic-bezier(0.25, 0.1, 0.1, 1)';
       });
       renderOdometer(TARGET);
 
-      // Animate silhouette drain over 3s
       const DURATION  = 3000;
       const startTime = performance.now();
 
       function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
 
       function bootFrame(now) {
-        const t = easeOut(Math.min((now - startTime) / DURATION, 1));
-        const current = t * TARGET;
-        renderSilhouette(current);
+        const t       = easeOut(Math.min((now - startTime) / DURATION, 1));
+        renderSilhouette(t * TARGET);
         if (t < 1) {
           requestAnimationFrame(bootFrame);
         } else {
-          // Boot done — remove CSS transitions from digits, physics loop takes over
           document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
             strip.style.transition = 'none';
           });
@@ -415,7 +401,6 @@
       playTick();
       lastDisplayedStr = str;
     }
-    // If physics isn't running, snap display to real
     if (!physicsRunning) {
       displayedPct = realPct;
       renderSilhouette(realPct);
