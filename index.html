@@ -378,7 +378,7 @@
 
   function playChime() {
     chimeAudio.currentTime = 0;
-    chimeAudio.play().catch(() => {});
+    chimeAudio.play().catch(err => console.warn('chime:', err.name, err.message));
   }
 
   function playTick() {
