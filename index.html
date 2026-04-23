@@ -208,8 +208,10 @@
   window.addEventListener('resize', setSilHeight);
 
   // ── Silhouette render ──
-  // Only the filled image is clipped. The empty outline is ALWAYS fully visible
-  // (and drawn on top via DOM order).
+  // Clip convention: inset(pct% 0 0 0) clips pct% off the TOP of the filled image.
+  //   pct = 0   → no clipping → silhouette fully filled.
+  //   pct = 100 → everything clipped → silhouette fully empty (drained).
+  // So rising pct = draining visual.
   function renderSilhouette(pct) {
     const clip = `inset(${pct.toFixed(4)}% 0 0 0)`;
     silFilled.style.clipPath = clip;
@@ -225,7 +227,6 @@
       if (ch === '.' || ch === '%') {
         const span = document.createElement('span');
         span.textContent = ch;
-        // No inline color — inherits from .odometer so it recolors with the digits.
         odometer.appendChild(span);
       } else {
         const col = document.createElement('span');
@@ -261,8 +262,6 @@
   }
 
   // ── Color interpolation based on displacement ──
-  // 0 displacement  → orange (#FD9F0F)
-  // ≥ threshold     → fully red (#FF3B30)
   const ORANGE = { r: 0xFD, g: 0x9F, b: 0x0F };
   const RED    = { r: 0xFF, g: 0x3B, b: 0x30 };
   const DISPLACE_THRESHOLD = 3;
@@ -280,16 +279,12 @@
   let realPct      = getRealPct();
   let displayedPct = realPct;
 
-  // Click bump sequence. Generous enough that rapid clicking can drive the fill
-  // all the way down to 0.01 (i.e. displayedPct up to ~99.99). After the array
-  // is exhausted, every subsequent click keeps adding 1 point.
   const IMPULSE_SEQUENCE   = [15, 10, 7, 5, 4, 3, 2.5, 2, 1.5, 1];
   const IMPULSE_RESET_MS   = 8000;
   let   impulseIndex       = 0;
   let   lastClickTime      = 0;
   let   impulseResetTimer  = null;
 
-  // Exponential creep: each second, this fraction of the displacement remains.
   const CREEP_RETENTION_PER_SEC = 0.55;
 
   let lastFrameTime  = null;
@@ -322,7 +317,7 @@
       physicsRunning = false;
       renderSilhouette(realPct);
       renderOdometer(realPct);
-      updateOdometerColor(); // snap to pure orange
+      updateOdometerColor();
     }
   }
 
@@ -368,53 +363,56 @@
   }
 
   // ── Boot animation ──
-  // 1. Page loads showing 99.99% (silhouette fully drained, odometer maxed).
-  // 2. Holds there for HOLD_MS.
-  // 3. Then animates DOWN from 99.99% to the real current percentage over
-  //    DURATION ms, with the odometer rolling down in parallel.
+  //
+  // The odometer and the silhouette are DECOUPLED during boot so they can both
+  // "animate down" in a way that's intuitive to read, even though they use
+  // opposite conventions under the hood:
+  //
+  //   • Odometer  starts at 99.99% (the visual "100%") and counts DOWN to TARGET.
+  //   • Silhouette starts fully FILLED  (clip = 0)  and drains DOWN to TARGET.
+  //
+  // End state: odometer reads the real percentage, silhouette is partially
+  // drained to match — exactly the same resting state as the live app.
   const TARGET      = getRealPct();
-  const INTRO_START = CEILING;  // 99.99 — the visual "100%" moment
+  const INTRO_TEXT  = CEILING;   // 99.99 — displayed as the "100%" moment
   const HOLD_MS     = 200;
-  const DURATION    = 6000;     // silhouette drop, doubled from previous 3000
-  const ODOM_MS     = 4400;     // odometer roll, doubled from previous 2200
+  const DURATION    = 6000;      // silhouette drain (doubled from 3000)
+  const ODOM_MS     = 4400;      // odometer roll (doubled from 2200)
 
-  // The odometer structure is built from TARGET's string so the digit column
-  // count matches the final resting display (e.g. "31.42%" → 4 digit columns).
-  // INTRO_START at 99.99 fits the same column count, so we can render straight
-  // into it without restructuring.
+  // Build the odometer structure sized for TARGET's digit count (e.g. "31.42%"
+  // → 4 digit columns). 99.99 fits the same column count so we can render it
+  // straight in without restructuring.
   const pctStr = TARGET.toFixed(2) + '%';
   buildOdometer(pctStr);
 
-  // Lock all digit strips with no transition while we set initial state.
+  // No transitions for the initial paint.
   document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
     strip.style.transition = 'none';
   });
 
-  // Initial paint: fully drained silhouette, odometer at 99.99%.
-  renderSilhouette(INTRO_START);
-  renderOdometer(INTRO_START);
+  // Initial paint: silhouette fully FILLED, odometer at 99.99%.
+  renderSilhouette(0);
+  renderOdometer(INTRO_TEXT);
   updateOdometerColor();
 
-  // Wait for two frames so the initial state definitely paints, then start the
-  // hold timer, then kick off the drop-down animation.
+  // Two frames of settle time, then hold, then kick off the drop animations.
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
       setTimeout(() => {
-        // Enable transitions for the odometer roll, then command the roll to TARGET.
+        // Odometer: enable transitions, command roll-down to TARGET.
         document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
           strip.style.transition = `transform ${ODOM_MS}ms cubic-bezier(0.25, 0.1, 0.1, 1)`;
         });
         renderOdometer(TARGET);
 
-        // Animate the silhouette down from INTRO_START to TARGET in parallel.
+        // Silhouette: drain from clip(0) → clip(TARGET) over DURATION, rAF-driven.
         const startTime = performance.now();
 
         function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
 
         function bootFrame(now) {
-          const t   = easeOut(Math.min((now - startTime) / DURATION, 1));
-          const pct = INTRO_START - t * (INTRO_START - TARGET);
-          renderSilhouette(pct);
+          const t = easeOut(Math.min((now - startTime) / DURATION, 1));
+          renderSilhouette(t * TARGET);
           if (t < 1) {
             requestAnimationFrame(bootFrame);
           } else {
