@@ -97,16 +97,16 @@
     pointer-events: none;
   }
 
-  /* Water wobble keyframes — 50% intensity */
+  /* Water wobble keyframes — subtler (roughly 50% of previous intensity). */
   @keyframes waterWobble {
-    0%   { transform: translateX(-50%) skewX(0deg)     scaleX(1);     }
-    10%  { transform: translateX(-50%) skewX(-2deg)    scaleX(1.01);  }
-    25%  { transform: translateX(-50%) skewX(1.5deg)   scaleX(0.995); }
-    40%  { transform: translateX(-50%) skewX(-1deg)    scaleX(1.005); }
-    55%  { transform: translateX(-50%) skewX(0.6deg)   scaleX(1);     }
-    70%  { transform: translateX(-50%) skewX(-0.3deg)  scaleX(1);     }
-    85%  { transform: translateX(-50%) skewX(0.15deg)  scaleX(1);     }
-    100% { transform: translateX(-50%) skewX(0deg)     scaleX(1);     }
+    0%   { transform: translateX(-50%) skewX(0deg)      scaleX(1);      }
+    10%  { transform: translateX(-50%) skewX(-1deg)     scaleX(1.005);  }
+    25%  { transform: translateX(-50%) skewX(0.75deg)   scaleX(0.998);  }
+    40%  { transform: translateX(-50%) skewX(-0.5deg)   scaleX(1.0025); }
+    55%  { transform: translateX(-50%) skewX(0.3deg)    scaleX(1);      }
+    70%  { transform: translateX(-50%) skewX(-0.15deg)  scaleX(1);      }
+    85%  { transform: translateX(-50%) skewX(0.07deg)   scaleX(1);      }
+    100% { transform: translateX(-50%) skewX(0deg)      scaleX(1);      }
   }
 
   /* Both images shake identically so they stay locked together visually */
@@ -286,17 +286,19 @@
   let realPct      = getRealPct();
   let displayedPct = realPct;
 
-  // Click bump sequence: first click adds 10 points, then 5, 2, 1, 0.5, 0.25, 0.1.
-  // After the end of the array, the smallest value is reused.
-  const IMPULSE_SEQUENCE   = [10, 5, 2, 1, 0.5, 0.25, 0.1];
+  // Click bump sequence. Generous enough that rapid clicking can realistically
+  // drive the fill all the way down to 0.01 (i.e. displayedPct up to ~99.99).
+  // After the array is exhausted, every subsequent click keeps adding 1 point.
+  const IMPULSE_SEQUENCE   = [15, 10, 7, 5, 4, 3, 2.5, 2, 1.5, 1];
   const IMPULSE_RESET_MS   = 8000;
   let   impulseIndex       = 0;
   let   lastClickTime      = 0;
   let   impulseResetTimer  = null;
 
   // Exponential creep: each second, this fraction of the displacement remains.
-  // 0.35 ≈ 65% of the gap closes per second → feels like a gentle but persistent current.
-  const CREEP_RETENTION_PER_SEC = 0.35;
+  // Higher = slower creep back, so rapid clicks accumulate more effectively.
+  // 0.55 → ~45% of the gap closes per second.
+  const CREEP_RETENTION_PER_SEC = 0.55;
 
   let lastFrameTime  = null;
   let physicsRunning = false;
@@ -350,7 +352,7 @@
       impulseIndex = 0;
     }, IMPULSE_RESET_MS);
 
-    // Pick this click's bump (clamped to the smallest value once past the array end).
+    // Pick this click's bump (clamped to the final value once past the array end).
     const bump = IMPULSE_SEQUENCE[Math.min(impulseIndex, IMPULSE_SEQUENCE.length - 1)];
     impulseIndex++;
 
@@ -386,6 +388,26 @@
     tickAudio.play().catch(() => {});
   }
 
+  // Try to play the chime at boot. If the browser blocks autoplay, queue it
+  // to fire on the user's first interaction instead.
+  let chimePending = false;
+  function tryBootChime() {
+    chimeAudio.currentTime = 0;
+    chimeAudio.play().catch(err => {
+      console.warn('chime blocked at boot, waiting for interaction:', err.name);
+      chimePending = true;
+    });
+  }
+  function fireChimeOnInteraction() {
+    if (!chimePending) return;
+    chimePending = false;
+    chimeAudio.currentTime = 0;
+    chimeAudio.play().catch(err => console.warn('chime still failed:', err.name));
+  }
+  document.addEventListener('pointerdown', fireChimeOnInteraction, { once: true });
+  document.addEventListener('keydown',     fireChimeOnInteraction, { once: true });
+  document.addEventListener('touchstart',  fireChimeOnInteraction, { once: true });
+
   // ── Boot animation ──
   const TARGET = getRealPct();
   const pctStr = TARGET.toFixed(2) + '%';
@@ -402,7 +424,7 @@
 
   requestAnimationFrame(() => {
     requestAnimationFrame(() => {
-      playChime();
+      tryBootChime();
 
       document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
         strip.style.transition = 'transform 2.2s cubic-bezier(0.25, 0.1, 0.1, 1)';
