@@ -82,7 +82,6 @@
   .sil-wrap {
     position: relative;
     flex-shrink: 0;
-    cursor: pointer;
   }
 
   .sil-wrap img {
@@ -141,6 +140,192 @@
     object-fit: cover;
     display: block;
   }
+
+  /* ── Skip button ── */
+  .skip-btn {
+    position: fixed;
+    bottom: calc(20px + 52px + 10vh);
+    right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: rgba(20, 20, 20, 0.85);
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    border: 2px solid rgba(255,255,255,0.55);
+    cursor: pointer;
+    z-index: 100;
+    transition: background 0.15s ease, border-color 0.15s ease;
+    user-select: none;
+  }
+
+  .skip-btn:hover {
+    background: rgba(40, 40, 40, 0.95);
+    border-color: #fff;
+  }
+
+  .skip-btn .skip-arrow {
+    font-size: 13px;
+    line-height: 1;
+  }
+
+  /* ── Game overlay ── */
+  #game-over-screen {
+    position: absolute;
+    inset: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    background: rgba(0,0,0,0.72);
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  }
+
+  #game-over-screen h2 {
+    font-size: clamp(30px, 6vw, 68px);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    margin: 0;
+    text-align: center;
+    line-height: 1.1;
+  }
+
+  .game-over-subtitle {
+    font-size: 13px;
+    color: rgba(255,255,255,0.3);
+    letter-spacing: 0.06em;
+    margin-top: -8px;
+  }
+
+  .game-score-display {
+    font-size: clamp(18px, 3vw, 36px);
+    color: #FD9F0F;
+    font-weight: 700;
+  }
+
+  .game-btns { display: flex; gap: 16px; }
+
+  .game-btn {
+    padding: 12px 32px;
+    background: transparent;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    border: 2px solid rgba(255,255,255,0.5);
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease;
+  }
+
+  .game-btn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: #fff;
+  }
+
+  .game-over-inner {
+    max-width: 360px;
+    width: 90%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .score-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .name-input {
+    padding: 11px 14px;
+    background: transparent;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border: 2px solid rgba(255,255,255,0.5);
+    outline: none;
+    width: 170px;
+    text-transform: uppercase;
+  }
+
+  .name-input::placeholder { color: rgba(255,255,255,0.28); font-weight: 400; text-transform: none; }
+  .name-input:focus { border-color: #fff; }
+
+  #score-submitted-msg {
+    color: #FD9F0F;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+  }
+
+  .leaderboard {
+    width: 100%;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding-top: 12px;
+  }
+
+  .lb-title {
+    font-size: 10px;
+    letter-spacing: 0.18em;
+    color: rgba(255,255,255,0.35);
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .lb-list { width: 100%; }
+
+  .lb-row {
+    display: flex;
+    align-items: center;
+    padding: 5px 4px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+    font-size: 13px;
+  }
+
+  .lb-rank { width: 22px; color: rgba(255,255,255,0.3); font-size: 11px; flex-shrink: 0; }
+  .lb-name { flex: 1; font-weight: 700; letter-spacing: 0.04em; }
+  .lb-score { color: #FD9F0F; font-weight: 700; }
+
+  .lb-you { background: rgba(253,159,15,0.08); }
+  .lb-you .lb-name,
+  .lb-you .lb-score { color: #FD9F0F; }
+
+  .lb-empty, .lb-loading {
+    color: rgba(255,255,255,0.3);
+    font-size: 12px;
+    text-align: center;
+    padding: 8px 0;
+  }
+
+  #name-submitted-row {
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+  }
+
+  .edit-name-link {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.25);
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: underline;
+    padding: 0 0 0 4px;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    letter-spacing: 0.04em;
+  }
+
+  .edit-name-link:hover { color: rgba(255,255,255,0.55); }
 </style>
 </head>
 <body>
@@ -166,6 +351,37 @@
 
 </div>
 
+<!-- Skip button -->
+<button class="skip-btn" id="skip-btn">Skip <span class="skip-arrow">&#9654;</span></button>
+
+<!-- Game overlay -->
+<div id="game-overlay" style="display:none; position:fixed; inset:0; z-index:200; background:#000;">
+  <canvas id="game-canvas" style="display:block;"></canvas>
+  <div id="game-over-screen" style="display:none;">
+    <div class="game-over-inner">
+      <h2>Presidency<br>Continues</h2>
+      <div class="game-over-subtitle">(Game Over)</div>
+      <div id="game-final-score" class="game-score-display">SCORE: 0</div>
+      <div id="name-input-row" class="score-form">
+        <input type="text" id="player-name" class="name-input" placeholder="INSTA OR NICKNAME" maxlength="20" autocomplete="off">
+        <button class="game-btn" id="submit-score-btn">SUBMIT</button>
+      </div>
+      <div id="name-submitted-row" style="display:none; align-items:center; gap:6px;">
+        <span id="submitted-as-text"></span>
+        <button id="edit-name-btn" class="edit-name-link">edit</button>
+      </div>
+      <div class="leaderboard">
+        <div class="lb-title">TOP 10</div>
+        <div id="leaderboard-list" class="lb-list"></div>
+      </div>
+      <div class="game-btns">
+        <button class="game-btn" id="game-retry">RETRY</button>
+        <button class="game-btn" id="game-exit">EXIT</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Instagram floating link -->
 <a class="ig-link" href="https://www.instagram.com/trumpprogressbar/" target="_blank" rel="noopener">
   <img src="circleLogo.png" alt="Instagram">
@@ -173,6 +389,37 @@
 
 <!-- Audio (tick only; chime removed) -->
 <audio id="tick" src="tick.wav" preload="auto"></audio>
+
+<script type="module">
+  import { initializeApp }                                          from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
+  import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey:            "AIzaSyA5jS3bUxSAgxThYrMHOylyOCADo9y-_bw",
+    authDomain:        "trump-progress-bar.firebaseapp.com",
+    projectId:         "trump-progress-bar",
+    storageBucket:     "trump-progress-bar.firebasestorage.app",
+    messagingSenderId: "357979942445",
+    appId:             "1:357979942445:web:e3b8b6153f86e631e652a4"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  window._saveScore = async (name, scoreVal) => {
+    await addDoc(collection(db, 'scores'), {
+      name:  name.trim().toUpperCase().slice(0, 20),
+      score: scoreVal,
+      ts:    Date.now()
+    });
+  };
+
+  window._getLeaderboard = async () => {
+    const q    = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
+    const snap = await getDocs(q);
+    return snap.docs.map(d => d.data());
+  };
+</script>
 
 <script>
   // ── Constants ──
@@ -321,38 +568,27 @@
     }
   }
 
-  // ── Click handler ──
-  let wobbleTimer = null;
-
-  silWrap.addEventListener('click', () => {
-    const now = Date.now();
-
-    if (now - lastClickTime > IMPULSE_RESET_MS) {
-      impulseIndex = 0;
-    }
-    lastClickTime = now;
-
-    if (impulseResetTimer) clearTimeout(impulseResetTimer);
-    impulseResetTimer = setTimeout(() => {
-      impulseIndex = 0;
-    }, IMPULSE_RESET_MS);
-
-    const bump = IMPULSE_SEQUENCE[Math.min(impulseIndex, IMPULSE_SEQUENCE.length - 1)];
-    impulseIndex++;
-
-    displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct + bump));
-
-    silWrap.classList.remove('wobble');
-    if (wobbleTimer) clearTimeout(wobbleTimer);
-    void silWrap.offsetWidth;
-    silWrap.classList.add('wobble');
-    wobbleTimer = setTimeout(() => silWrap.classList.remove('wobble'), 750);
-
-    renderSilhouette(displayedPct);
-    renderOdometer(displayedPct);
-    updateOdometerColor();
-    startPhysics();
-  });
+  // ── Click handler (commented out — replaced by skip game) ──
+  // let wobbleTimer = null;
+  // silWrap.addEventListener('click', () => {
+  //   const now = Date.now();
+  //   if (now - lastClickTime > IMPULSE_RESET_MS) impulseIndex = 0;
+  //   lastClickTime = now;
+  //   if (impulseResetTimer) clearTimeout(impulseResetTimer);
+  //   impulseResetTimer = setTimeout(() => { impulseIndex = 0; }, IMPULSE_RESET_MS);
+  //   const bump = IMPULSE_SEQUENCE[Math.min(impulseIndex, IMPULSE_SEQUENCE.length - 1)];
+  //   impulseIndex++;
+  //   displayedPct = Math.max(FLOOR, Math.min(CEILING, displayedPct + bump));
+  //   silWrap.classList.remove('wobble');
+  //   if (wobbleTimer) clearTimeout(wobbleTimer);
+  //   void silWrap.offsetWidth;
+  //   silWrap.classList.add('wobble');
+  //   wobbleTimer = setTimeout(() => silWrap.classList.remove('wobble'), 750);
+  //   renderSilhouette(displayedPct);
+  //   renderOdometer(displayedPct);
+  //   updateOdometerColor();
+  //   startPhysics();
+  // });
 
   // ── Audio (tick only) ──
   const tickAudio = document.getElementById('tick');
@@ -361,6 +597,16 @@
     tickAudio.currentTime = 0;
     tickAudio.play().catch(() => {});
   }
+
+  // ── Skip button ──
+  const skipBtn = document.getElementById('skip-btn');
+  let bootDone = false;
+  let skipBootFn = null;
+
+  skipBtn.addEventListener('click', () => {
+    if (!bootDone && skipBootFn) skipBootFn();
+    window._startTrumpGame();
+  });
 
   // ── Boot animation ──
   //
@@ -407,26 +653,332 @@
 
         // Silhouette: drain from clip(0) → clip(TARGET) over DURATION, rAF-driven.
         const startTime = performance.now();
+        let bootCancelled = false;
+
+        function finishBoot() {
+          bootCancelled = true;
+          document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
+            strip.style.transition = 'none';
+          });
+          displayedPct = TARGET;
+          renderSilhouette(TARGET);
+          renderOdometer(TARGET);
+          bootDone = true;
+        }
+
+        skipBootFn = finishBoot;
 
         function easeOut(t) { return 1 - Math.pow(1 - t, 6); }
 
         function bootFrame(now) {
+          if (bootCancelled) return;
           const t = easeOut(Math.min((now - startTime) / DURATION, 1));
           renderSilhouette(t * TARGET);
           if (t < 1) {
             requestAnimationFrame(bootFrame);
           } else {
-            document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
-              strip.style.transition = 'none';
-            });
-            displayedPct = TARGET;
-            renderSilhouette(TARGET);
+            finishBoot();
           }
         }
         requestAnimationFrame(bootFrame);
       }, HOLD_MS);
     });
   });
+
+  // ── Trump Runner Game ──
+  ;(function () {
+    const overlay      = document.getElementById('game-overlay');
+    const canvas       = document.getElementById('game-canvas');
+    const ctx          = canvas.getContext('2d');
+    const gameOverEl   = document.getElementById('game-over-screen');
+    const finalScoreEl = document.getElementById('game-final-score');
+    const retryBtn     = document.getElementById('game-retry');
+    const exitBtn      = document.getElementById('game-exit');
+    const trumpImg     = silFilled; // already loaded on main page
+
+    const CHAR_H  = 80;
+    const CHAR_X  = 110;
+    const GRAVITY = 0.55;
+    const JUMP_V  = -13;
+    const LABELS  = ['SUBPOENA','TWEET','RECOUNT','PROTEST','HEARING','VETO','LAWSUIT','IMPEACH'];
+
+    let W, H, groundY, CHAR_W;
+    let rafId;
+    let phase; // 'intro' | 'playing' | 'over'
+
+    let introT0, introDur;
+    let introSrcCX, introSrcCY, introSrcH, introSrcW;
+    let dstCX, dstCY;
+
+    let trumpY, trumpVY;
+    let obstacles, score, speed, frames, nextSpawn, finalScore;
+
+    function resize() {
+      W = canvas.width  = window.innerWidth;
+      H = canvas.height = window.innerHeight;
+      groundY = Math.round(H * 0.8);
+    }
+
+    function computeCharDims() {
+      const ar = (trumpImg.naturalWidth / trumpImg.naturalHeight) || 0.55;
+      CHAR_W = Math.round(CHAR_H * ar);
+      dstCX  = CHAR_X + CHAR_W / 2;
+      dstCY  = groundY - CHAR_H / 2;
+    }
+
+    function resetState() {
+      trumpY    = groundY - CHAR_H;
+      trumpVY   = 0;
+      obstacles = [];
+      score     = 0;
+      speed     = 4;
+      frames    = 0;
+      nextSpawn = 90;
+      gameOverEl.style.display = 'none';
+    }
+
+    function open() {
+      resize();
+      computeCharDims();
+
+      const rect = silWrap.getBoundingClientRect();
+      const ar   = (trumpImg.naturalWidth / trumpImg.naturalHeight) || 0.55;
+      introSrcCX = rect.left + rect.width  / 2;
+      introSrcCY = rect.top  + rect.height / 2;
+      introSrcH  = rect.height;
+      introSrcW  = introSrcH * ar;
+
+      phase    = 'intro';
+      introDur = 900;
+      introT0  = null;
+
+      resetState();
+      overlay.style.display = 'block';
+      cancelAnimationFrame(rafId);
+      rafId = requestAnimationFrame(frame);
+    }
+
+    function jump() {
+      if (phase !== 'playing') return;
+      if (trumpY >= groundY - CHAR_H - 2) trumpVY = JUMP_V;
+    }
+
+    function spawnObstacle() {
+      const h = 38 + Math.random() * 55;
+      const w = 26 + Math.random() * 28;
+      obstacles.push({ x: W + w, w, h, label: LABELS[Math.floor(Math.random() * LABELS.length)] });
+    }
+
+    function collides() {
+      const m = 7;
+      const px = CHAR_X + m, py = trumpY + m;
+      const pw = CHAR_W - m * 2, ph = CHAR_H - m;
+      for (const ob of obstacles) {
+        const oy = groundY - ob.h;
+        if (px < ob.x + ob.w && px + pw > ob.x &&
+            py < oy + ob.h   && py + ph > oy) return true;
+      }
+      return false;
+    }
+
+    async function showLeaderboard() {
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '<div class="lb-loading">Loading...</div>';
+      try {
+        if (!window._getLeaderboard) { list.innerHTML = ''; return; }
+        const scores = await window._getLeaderboard();
+        if (!scores.length) {
+          list.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>';
+          return;
+        }
+        list.innerHTML = scores.map((s, i) => `
+          <div class="lb-row${s.score === finalScore ? ' lb-you' : ''}">
+            <span class="lb-rank">${i + 1}</span>
+            <span class="lb-name">${s.name}</span>
+            <span class="lb-score">${Number(s.score).toFixed(3)}%</span>
+          </div>`).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="lb-empty">Could not load scores.</div>';
+      }
+    }
+
+    function drawGround() {
+      ctx.fillStyle = '#444';
+      ctx.fillRect(0, groundY, W, 2);
+      ctx.fillStyle = '#111';
+      ctx.fillRect(0, groundY + 2, W, H - groundY - 2);
+    }
+
+    function drawHUD() {
+      const scorePct      = (score / 1000).toFixed(3) + '%';
+      const presidencyPct = Math.max(FLOOR, realPct - score / 1000).toFixed(2) + '%';
+
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '11px Helvetica Neue,Helvetica,Arial,sans-serif';
+      ctx.fillText('SCORE', 24, 28);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px Helvetica Neue,Helvetica,Arial,sans-serif';
+      ctx.fillText(scorePct, 24, 54);
+
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(253,159,15,0.5)';
+      ctx.font = '11px Helvetica Neue,Helvetica,Arial,sans-serif';
+      ctx.fillText('PRESIDENCY', W - 24, 28);
+      ctx.fillStyle = '#FD9F0F';
+      ctx.font = 'bold 24px Helvetica Neue,Helvetica,Arial,sans-serif';
+      ctx.fillText(presidencyPct, W - 24, 54);
+    }
+
+    function drawObstacles() {
+      for (const ob of obstacles) {
+        const oy = groundY - ob.h;
+        ctx.fillStyle = '#c0392b';
+        ctx.fillRect(ob.x, oy, ob.w, ob.h);
+        if (ob.h > 32 && ob.w > 18) {
+          ctx.save();
+          ctx.fillStyle = 'rgba(255,255,255,0.85)';
+          ctx.font = `bold ${Math.min(9, ob.w * 0.38)}px Helvetica Neue,Helvetica,Arial,sans-serif`;
+          ctx.textAlign = 'center';
+          ctx.translate(ob.x + ob.w / 2, oy + ob.h / 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.fillText(ob.label, 0, 3);
+          ctx.restore();
+        }
+      }
+    }
+
+    function frame(now) {
+      ctx.clearRect(0, 0, W, H);
+      drawGround();
+
+      if (phase === 'intro') {
+        if (!introT0) introT0 = now;
+        const t    = Math.min((now - introT0) / introDur, 1);
+        const ease = 1 - Math.pow(1 - t, 3);
+
+        const curH  = introSrcH + (CHAR_H  - introSrcH)  * ease;
+        const curW  = introSrcW + (CHAR_W  - introSrcW)  * ease;
+        const curCX = introSrcCX + (dstCX  - introSrcCX) * ease;
+        const curCY = introSrcCY + (dstCY  - introSrcCY) * ease;
+
+        ctx.drawImage(trumpImg, curCX - curW / 2, curCY - curH / 2, curW, curH);
+        drawHUD();
+        if (t >= 1) phase = 'playing';
+        rafId = requestAnimationFrame(frame);
+
+      } else if (phase === 'playing') {
+        trumpVY += GRAVITY;
+        trumpY  += trumpVY;
+        if (trumpY >= groundY - CHAR_H) { trumpY = groundY - CHAR_H; trumpVY = 0; }
+
+        frames++;
+        if (frames >= nextSpawn) {
+          spawnObstacle();
+          nextSpawn = frames + Math.max(45, 80 - score / 60) + Math.random() * 30;
+        }
+
+        speed = 4 + score / 300;
+        for (const ob of obstacles) ob.x -= speed;
+        obstacles = obstacles.filter(ob => ob.x + ob.w > -10);
+        score++;
+
+        drawObstacles();
+        ctx.drawImage(trumpImg, CHAR_X, trumpY, CHAR_W, CHAR_H);
+
+        if (collides()) {
+          phase = 'over';
+          finalScore = score / 1000;
+          finalScoreEl.textContent = 'SCORE: ' + finalScore.toFixed(3) + '%';
+          const saved = localStorage.getItem('playerName');
+          if (saved) {
+            showNameSubmitted(saved);
+            doSubmit(saved);
+          } else {
+            showNameInput(false);
+          }
+          gameOverEl.style.display = 'flex';
+          showLeaderboard();
+          drawHUD();
+          return;
+        }
+
+        if (score < 100) {
+          const alpha = Math.max(0, 1 - score / 80);
+          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.45})`;
+          ctx.font = '13px Helvetica Neue,Helvetica,Arial,sans-serif';
+          ctx.textAlign = 'center';
+          ctx.fillText('CLICK · TAP · SPACE  to jump', W / 2, groundY + 32);
+        }
+
+        drawHUD();
+        rafId = requestAnimationFrame(frame);
+      }
+    }
+
+    function close() {
+      overlay.style.display = 'none';
+      cancelAnimationFrame(rafId);
+    }
+
+    // ── Name persistence helpers ──
+    function showNameInput(editMode) {
+      document.getElementById('name-input-row').style.display = 'flex';
+      document.getElementById('name-submitted-row').style.display = 'none';
+      const inp = document.getElementById('player-name');
+      inp.value = editMode ? (localStorage.getItem('playerName') || '') : '';
+      const btn = document.getElementById('submit-score-btn');
+      btn.textContent = editMode ? 'SAVE' : 'SUBMIT';
+      btn.disabled = false;
+    }
+
+    function showNameSubmitted(name) {
+      document.getElementById('name-input-row').style.display = 'none';
+      const row = document.getElementById('name-submitted-row');
+      row.style.display = 'flex';
+      document.getElementById('submitted-as-text').textContent = 'Submitted as ' + name + ' ✓';
+    }
+
+    async function doSubmit(name) {
+      if (!window._saveScore) return;
+      try { await window._saveScore(name, finalScore); } catch (e) {}
+    }
+
+    canvas.addEventListener('click', jump);
+    document.addEventListener('keydown', e => {
+      if (overlay.style.display !== 'block') return;
+      if (e.code === 'Space')  { e.preventDefault(); jump(); }
+      if (e.code === 'Escape') close();
+    });
+    window.addEventListener('resize', () => {
+      if (overlay.style.display === 'block') { resize(); computeCharDims(); }
+    });
+    document.getElementById('submit-score-btn').addEventListener('click', async () => {
+      const inp  = document.getElementById('player-name');
+      const name = inp.value.trim().toUpperCase().slice(0, 20);
+      if (!name) { inp.focus(); return; }
+      const btn = document.getElementById('submit-score-btn');
+      btn.disabled = true;
+      btn.textContent = '...';
+      localStorage.setItem('playerName', name);
+      await doSubmit(name);
+      showNameSubmitted(name);
+      showLeaderboard();
+    });
+
+    document.getElementById('edit-name-btn').addEventListener('click', () => {
+      showNameInput(true);
+    });
+
+    retryBtn.addEventListener('click', () => {
+      resetState();
+      phase = 'playing';
+      rafId = requestAnimationFrame(frame);
+    });
+    exitBtn.addEventListener('click', close);
+
+    window._startTrumpGame = open;
+  })();
 
   // ── Live updates every minute ──
   let lastDisplayedStr = pctStr;
