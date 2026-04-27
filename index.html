@@ -172,10 +172,14 @@
     font-weight: 700;
     letter-spacing: 0.02em;
     border: 2px solid rgba(255,255,255,0.55);
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
     cursor: pointer;
     z-index: 100;
     transition: background 0.15s ease, border-color 0.15s ease;
     user-select: none;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .skip-btn:hover {
@@ -226,7 +230,8 @@
   .game-btns { display: flex; gap: 16px; }
 
   .game-btn {
-    padding: 12px 32px;
+    padding: 12px 0;
+    width: 130px;
     background: transparent;
     color: #fff;
     font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
@@ -234,8 +239,12 @@
     font-weight: 700;
     letter-spacing: 0.04em;
     border: 2px solid rgba(255,255,255,0.5);
+    border-radius: 0;
+    -webkit-appearance: none;
+    appearance: none;
     cursor: pointer;
     transition: background 0.15s ease, border-color 0.15s ease;
+    -webkit-tap-highlight-color: transparent;
   }
 
   .game-btn:hover {
@@ -375,7 +384,7 @@
 </div>
 
 <!-- Branding -->
-<div style="position:fixed; top:16px; right:20px; z-index:300; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; color:rgba(255,255,255,0.22); text-transform:uppercase; pointer-events:none; user-select:none;">Trump Progress Bar Page</div>
+<div id="brand-div" style="position:fixed; top:16px; right:20px; z-index:300; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.06em; color:rgba(255,255,255,0.28); text-transform:lowercase; pointer-events:none; user-select:none;">trumpprogressbarpage.com</div>
 
 <!-- Skip button -->
 <button class="skip-btn" id="skip-btn">Skip <span class="skip-arrow">&#9654;</span></button>
@@ -405,6 +414,7 @@
         <button class="game-btn" id="game-retry">RETRY</button>
         <button class="game-btn" id="game-exit">EXIT</button>
       </div>
+      <span style="font-size:12px;color:rgba(255,255,255,0.55);letter-spacing:0.12em;border:1px solid rgba(255,255,255,0.15);padding:6px 14px;">PRESS SPACE BAR TO RETRY</span>
     </div>
   </div>
 </div>
@@ -805,6 +815,7 @@
       introSrcW  = introSrcH * ar;
       phase = 'intro'; introDur = 900; introT0 = null;
       resetState();
+      document.getElementById('brand-div').style.display = 'none';
       overlay.style.display = 'block';
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(frame);
@@ -1034,9 +1045,9 @@
         ctx.fillText('COMBO x' + combo, 24, 74);
       }
       ctx.textAlign = 'right';
-      ctx.fillStyle = 'rgba(253,159,15,0.5)';
+      ctx.fillStyle = 'rgba(255,255,255,0.28)';
       ctx.font = '11px Helvetica Neue,sans-serif';
-      ctx.fillText('PRESIDENCY', W-24, 28);
+      ctx.fillText('TRUMP PROGRESS BAR PAGE', W-24, 28);
       ctx.fillStyle = '#FD9F0F';
       ctx.font = 'bold 24px Helvetica Neue,sans-serif';
       ctx.fillText(pp, W-24, 54);
@@ -1074,9 +1085,9 @@
         if (frames >= nextStar)  { spawnStar();     nextStar  = frames + 150 + Math.random()*120; }
 
         // Move
-        speed = 4 + score / 300;
+        speed = Math.min(4 + score / 600, 10);
         for (const ob of obstacles) ob.x -= speed;
-        for (const s  of stars)     s.x  -= speed * 0.82;
+        for (const s  of stars)     s.x  -= speed;
         obstacles = obstacles.filter(ob => ob.x + ob.w > -10);
         stars     = stars.filter(s => s.x > -s.size - 10);
         score++;
@@ -1146,7 +1157,11 @@
       }
     }
 
-    function close() { overlay.style.display = 'none'; cancelAnimationFrame(rafId); }
+    function close() {
+      overlay.style.display = 'none';
+      document.getElementById('brand-div').style.display = 'block';
+      cancelAnimationFrame(rafId);
+    }
 
     // ── Leaderboard / name helpers ──
     async function showLeaderboard() {
@@ -1205,7 +1220,7 @@
     canvas.addEventListener('click', jump);
     document.addEventListener('keydown', e => {
       if (overlay.style.display !== 'block') return;
-      if (e.code === 'Space')  { e.preventDefault(); jump(); }
+      if (e.code === 'Space')  { e.preventDefault(); phase === 'over' ? retryBtn.click() : jump(); }
       if (e.code === 'Escape') close();
     });
     window.addEventListener('resize', () => {
