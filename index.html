@@ -3,8 +3,23 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Trump's Presidency Countdown</title>
-<link rel="icon" type="image/png" href="circleLogo.png">
+<title>Trump Progress Bar Countdown</title>
+<meta name="description" content="🟠 Counting down the 47th presidency in real time. Live percentage tracker — how far through Trump's term are we? Updated every minute.">
+<meta property="og:title" content="Trump Progress Bar Countdown">
+<meta property="og:description" content="🟠 Counting down the 47th presidency in real time. Live percentage tracker — how far through Trump's term are we?">
+<meta property="og:image" content="https://www.trumpprogressbarpage.com/circleLogo.png">
+<meta property="og:url" content="https://www.trumpprogressbarpage.com">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Trump Progress Bar Countdown">
+<meta name="twitter:description" content="🟠 Counting down the 47th presidency in real time. Live percentage tracker — how far through Trump's term are we?">
+<meta name="twitter:image" content="https://www.trumpprogressbarpage.com/circleLogo.png">
+<link rel="icon" href="favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" sizes="192x192" href="android-chrome-192x192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="android-chrome-512x512.png">
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Helvetica+Neue:wght@700&display=swap');
 
@@ -301,6 +316,14 @@
   .lb-you .lb-name,
   .lb-you .lb-score { color: #FD9F0F; }
 
+  #player-rank {
+    font-size: 12px;
+    color: rgba(255,255,255,0.38);
+    text-align: center;
+    padding: 8px 0 0;
+    letter-spacing: 0.08em;
+  }
+
   .lb-empty, .lb-loading {
     color: rgba(255,255,255,0.3);
     font-size: 12px;
@@ -351,6 +374,9 @@
 
 </div>
 
+<!-- Branding -->
+<div style="position:fixed; top:16px; right:20px; z-index:300; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; color:rgba(255,255,255,0.22); text-transform:uppercase; pointer-events:none; user-select:none;">Trump Progress Bar Page</div>
+
 <!-- Skip button -->
 <button class="skip-btn" id="skip-btn">Skip <span class="skip-arrow">&#9654;</span></button>
 
@@ -373,6 +399,7 @@
       <div class="leaderboard">
         <div class="lb-title">TOP 10</div>
         <div id="leaderboard-list" class="lb-list"></div>
+        <div id="player-rank" style="display:none;"></div>
       </div>
       <div class="game-btns">
         <button class="game-btn" id="game-retry">RETRY</button>
@@ -392,7 +419,7 @@
 
 <script type="module">
   import { initializeApp }                                          from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyA5jS3bUxSAgxThYrMHOylyOCADo9y-_bw",
@@ -418,6 +445,12 @@
     const q    = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
     const snap = await getDocs(q);
     return snap.docs.map(d => d.data());
+  };
+
+  window._getRank = async (scoreVal) => {
+    const q    = query(collection(db, 'scores'), where('score', '>', scoreVal));
+    const snap = await getCountFromServer(q);
+    return snap.data().count + 1;
   };
 </script>
 
@@ -620,25 +653,21 @@
   // End state: odometer reads the real percentage, silhouette is partially
   // drained to match — exactly the same resting state as the live app.
   const TARGET      = getRealPct();
-  const INTRO_TEXT  = CEILING;   // 99.99 — displayed as the "100%" moment
   const HOLD_MS     = 200;
   const DURATION    = 6000;      // silhouette drain (doubled from 3000)
   const ODOM_MS     = 4400;      // odometer roll (doubled from 2200)
 
-  // Build the odometer structure sized for TARGET's digit count (e.g. "31.42%"
-  // → 4 digit columns). 99.99 fits the same column count so we can render it
-  // straight in without restructuring.
   const pctStr = TARGET.toFixed(2) + '%';
   buildOdometer(pctStr);
 
-  // No transitions for the initial paint.
+  // No transitions for the initial paint — all digits start at 0.
   document.querySelectorAll('.digit-col .digit-strip').forEach(strip => {
     strip.style.transition = 'none';
+    strip.style.transform  = 'translateY(0)';
   });
 
-  // Initial paint: silhouette fully FILLED, odometer at 99.99%.
+  // Initial paint: silhouette fully FILLED, odometer at 0%.
   renderSilhouette(0);
-  renderOdometer(INTRO_TEXT);
   updateOdometerColor();
 
   // Two frames of settle time, then hold, then kick off the drop animations.
@@ -694,25 +723,44 @@
     const finalScoreEl = document.getElementById('game-final-score');
     const retryBtn     = document.getElementById('game-retry');
     const exitBtn      = document.getElementById('game-exit');
-    const trumpImg     = silFilled; // already loaded on main page
+    const trumpImg     = silFilled;
 
-    const CHAR_H  = 80;
-    const CHAR_X  = 110;
-    const GRAVITY = 0.55;
-    const JUMP_V  = -13;
-    const LABELS  = ['SUBPOENA','TWEET','RECOUNT','PROTEST','HEARING','VETO','LAWSUIT','IMPEACH'];
+    const CHAR_H     = 80;
+    const CHAR_X     = 110;
+    const GRAVITY    = 0.62;
+    const JUMP_V     = -13.5;
+    const JUMP_V2    = -11;
+    const LABELS     = ['SUBPOENA','TWEET','RECOUNT','PROTEST','HEARING','VETO','LAWSUIT','IMPEACH'];
+    const STAR_SIZES = [7, 11, 16];
+    const STAR_VALS  = [1000, 2000, 5000];
+    const MILESTONES = [0.1, 0.25, 0.5, 0.75, 1.0, 1.5, 2.0, 3.0, 5.0];
 
-    let W, H, groundY, CHAR_W;
-    let rafId;
-    let phase; // 'intro' | 'playing' | 'over'
+    // Game sounds
+    function makeAudio(src) { const a = new Audio(src); a.preload = 'auto'; return a; }
+    const SFX = {
+      point:    makeAudio('point.wav'),
+      star:     makeAudio('starTouched.mp3'),
+      gameOver: makeAudio('gameoversound.mp3'),
+    };
+    function playSound(key) {
+      try { SFX[key].currentTime = 0; SFX[key].play().catch(() => {}); } catch(e) {}
+    }
 
-    let introT0, introDur;
-    let introSrcCX, introSrcCY, introSrcH, introSrcW;
-    let dstCX, dstCY;
+    // Preload sprite images
+    const IMGS = {};
+    ['trump_run_1','trump_run_2','trump_run_3','trump_run_4',
+     'trump_jump','trump_jump_rise','trump_fall','trump_idle','trump_land'
+    ].forEach(n => { const img = new Image(); img.src = n + '.png'; IMGS[n] = img; });
 
-    let trumpY, trumpVY;
-    let obstacles, score, speed, frames, nextSpawn, finalScore;
+    let W, H, groundY, CHAR_W, rafId, phase;
+    let introT0, introDur, introSrcCX, introSrcCY, introSrcH, introSrcW, dstCX, dstCY;
+    let trumpY, trumpVY, jumpsLeft;
+    let obstacles, stars, particles, floatMsgs;
+    let score, speed, frames, nextSpawn, nextStar;
+    let combo, comboTimer, runCycle, squashTimer, flashTimer, invincibleTimer;
+    let finalScore, lastMilestone;
 
+    // ── Setup ──
     function resize() {
       W = canvas.width  = window.innerWidth;
       H = canvas.height = window.innerHeight;
@@ -720,195 +768,377 @@
     }
 
     function computeCharDims() {
-      const ar = (trumpImg.naturalWidth / trumpImg.naturalHeight) || 0.55;
+      const ref = IMGS.trump_run_1 && IMGS.trump_run_1.naturalWidth ? IMGS.trump_run_1 : trumpImg;
+      const ar  = (ref.naturalWidth / ref.naturalHeight) || 0.55;
       CHAR_W = Math.round(CHAR_H * ar);
       dstCX  = CHAR_X + CHAR_W / 2;
       dstCY  = groundY - CHAR_H / 2;
     }
 
+    function getCharImg() {
+      const onGround = trumpY >= groundY - CHAR_H - 2;
+      if (squashTimer > 0) return IMGS.trump_land      || trumpImg;
+      if (onGround)        return IMGS['trump_run_' + (Math.floor(runCycle / 8) % 4 + 1)] || trumpImg;
+      if (trumpVY < -3)    return IMGS.trump_jump_rise || IMGS.trump_jump || trumpImg;
+      if (trumpVY >  3)    return IMGS.trump_fall      || IMGS.trump_jump || trumpImg;
+      return                      IMGS.trump_jump      || trumpImg;
+    }
+
     function resetState() {
-      trumpY    = groundY - CHAR_H;
-      trumpVY   = 0;
-      obstacles = [];
-      score     = 0;
-      speed     = 4;
-      frames    = 0;
-      nextSpawn = 90;
+      trumpY = groundY - CHAR_H; trumpVY = 0; jumpsLeft = 2;
+      obstacles = []; stars = []; particles = []; floatMsgs = [];
+      score = 0; speed = 4; frames = 0;
+      nextSpawn = 90; nextStar = 130 + Math.random() * 80;
+      combo = 0; comboTimer = 0; runCycle = 0;
+      squashTimer = 0; flashTimer = 0; lastMilestone = 0; invincibleTimer = 0;
       gameOverEl.style.display = 'none';
+      document.getElementById('player-rank').style.display = 'none';
     }
 
     function open() {
-      resize();
-      computeCharDims();
-
+      resize(); computeCharDims();
       const rect = silWrap.getBoundingClientRect();
       const ar   = (trumpImg.naturalWidth / trumpImg.naturalHeight) || 0.55;
       introSrcCX = rect.left + rect.width  / 2;
       introSrcCY = rect.top  + rect.height / 2;
       introSrcH  = rect.height;
       introSrcW  = introSrcH * ar;
-
-      phase    = 'intro';
-      introDur = 900;
-      introT0  = null;
-
+      phase = 'intro'; introDur = 900; introT0 = null;
       resetState();
       overlay.style.display = 'block';
       cancelAnimationFrame(rafId);
       rafId = requestAnimationFrame(frame);
     }
 
+    // ── Input ──
     function jump() {
       if (phase !== 'playing') return;
-      if (trumpY >= groundY - CHAR_H - 2) trumpVY = JUMP_V;
+      if (jumpsLeft > 0) { trumpVY = jumpsLeft === 2 ? JUMP_V : JUMP_V2; jumpsLeft--; }
     }
 
+    // ── Spawning ──
     function spawnObstacle() {
-      const h = 38 + Math.random() * 55;
-      const w = 26 + Math.random() * 28;
-      obstacles.push({ x: W + w, w, h, label: LABELS[Math.floor(Math.random() * LABELS.length)] });
+      const h = 38 + Math.random() * 55, w = 26 + Math.random() * 28;
+      obstacles.push({ x: W + w, w, h, passed: false, label: LABELS[Math.floor(Math.random() * LABELS.length)] });
     }
 
+    function spawnStar() {
+      const tier = Math.random() < 0.55 ? 0 : Math.random() < 0.65 ? 1 : 2;
+      const size = STAR_SIZES[tier];
+      // Place coins at jump-relevant heights
+      const roll = Math.random();
+      let y;
+      if (roll < 0.2)       y = groundY - size - 15;                          // ground level
+      else if (roll < 0.65) y = groundY - CHAR_H - 55 - Math.random() * 50;  // single-jump height
+      else                  y = groundY - CHAR_H - 115 - Math.random() * 35;  // double-jump height
+      stars.push({
+        x: W + size, size, value: STAR_VALS[tier],
+        y: Math.max(55, y),
+        rotation: Math.random() * Math.PI * 2,
+      });
+    }
+
+    function spawnParticles(x, y, col) {
+      for (let i = 0; i < 14; i++) {
+        const a = (i / 14) * Math.PI * 2, s = 1.5 + Math.random() * 3;
+        particles.push({ x, y, vx: Math.cos(a)*s, vy: Math.sin(a)*s - 1.2, life: 1, col, r: 2 + Math.random() * 2.5 });
+      }
+    }
+
+    // ── Collision ──
     function collides() {
-      const m = 7;
-      const px = CHAR_X + m, py = trumpY + m;
-      const pw = CHAR_W - m * 2, ph = CHAR_H - m;
+      const m = 7, px = CHAR_X+m, py = trumpY+m, pw = CHAR_W-m*2, ph = CHAR_H-m;
       for (const ob of obstacles) {
         const oy = groundY - ob.h;
-        if (px < ob.x + ob.w && px + pw > ob.x &&
-            py < oy + ob.h   && py + ph > oy) return true;
+        if (px < ob.x+ob.w && px+pw > ob.x && py < oy+ob.h && py+ph > oy) return true;
       }
       return false;
     }
 
-    async function showLeaderboard() {
-      const list = document.getElementById('leaderboard-list');
-      list.innerHTML = '<div class="lb-loading">Loading...</div>';
-      try {
-        if (!window._getLeaderboard) { list.innerHTML = ''; return; }
-        const scores = await window._getLeaderboard();
-        if (!scores.length) {
-          list.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>';
-          return;
+    function handleNearMiss() {
+      for (const ob of obstacles) {
+        if (!ob.passed && ob.x + ob.w < CHAR_X) {
+          ob.passed = true;
+          playSound('point');
+          const oy = groundY - ob.h, margin = 22;
+          if (trumpY + 7 < oy + ob.h + margin && trumpY + CHAR_H - 7 > oy - margin) {
+            score += 20;
+            floatMsgs.push({ x: CHAR_X + CHAR_W + 8, y: trumpY + CHAR_H * 0.4, text: 'CLOSE!', life: 1.2, vy: -1, col: '#FF3B30', size: 13 });
+          }
         }
-        list.innerHTML = scores.map((s, i) => `
-          <div class="lb-row${s.score === finalScore ? ' lb-you' : ''}">
-            <span class="lb-rank">${i + 1}</span>
-            <span class="lb-name">${s.name}</span>
-            <span class="lb-score">${Number(s.score).toFixed(3)}%</span>
-          </div>`).join('');
-      } catch (e) {
-        list.innerHTML = '<div class="lb-empty">Could not load scores.</div>';
       }
     }
 
-    function drawGround() {
-      ctx.fillStyle = '#444';
-      ctx.fillRect(0, groundY, W, 2);
-      ctx.fillStyle = '#111';
-      ctx.fillRect(0, groundY + 2, W, H - groundY - 2);
+    function checkMilestones() {
+      const pct = score / 1000;
+      for (const m of MILESTONES) {
+        if (pct >= m && lastMilestone < m) {
+          lastMilestone = m;
+          floatMsgs.push({ x: W/2, y: H*0.35, text: (m < 1 ? m.toFixed(2) : m.toFixed(1)) + '%!', life: 2, vy: -0.3, col: '#FD9F0F', size: 30, bold: true });
+        }
+      }
     }
 
-    function drawHUD() {
-      const scorePct      = (score / 1000).toFixed(3) + '%';
-      const presidencyPct = Math.max(FLOOR, realPct - score / 1000).toFixed(2) + '%';
+    // ── Drawing ──
+    function drawCoins() {
+      for (const s of stars) {
+        s.rotation += 0.09;
+        const squish = Math.abs(Math.cos(s.rotation));
+        const col    = s.size === STAR_SIZES[2] ? '#FFA500' : '#FFD700';
+        const dark   = s.size === STAR_SIZES[2] ? '#b36a00' : '#b8960a';
+        ctx.save();
+        ctx.shadowBlur = s.size * 3; ctx.shadowColor = col;
 
-      ctx.textAlign = 'left';
-      ctx.fillStyle = 'rgba(255,255,255,0.4)';
-      ctx.font = '11px Helvetica Neue,Helvetica,Arial,sans-serif';
-      ctx.fillText('SCORE', 24, 28);
-      ctx.fillStyle = '#fff';
-      ctx.font = 'bold 24px Helvetica Neue,Helvetica,Arial,sans-serif';
-      ctx.fillText(scorePct, 24, 54);
+        // Coin body
+        ctx.fillStyle = squish < 0.15 ? dark : col;
+        ctx.beginPath();
+        ctx.ellipse(s.x, s.y, Math.max(1, s.size * squish), s.size, 0, 0, Math.PI * 2);
+        ctx.fill();
 
-      ctx.textAlign = 'right';
-      ctx.fillStyle = 'rgba(253,159,15,0.5)';
-      ctx.font = '11px Helvetica Neue,Helvetica,Arial,sans-serif';
-      ctx.fillText('PRESIDENCY', W - 24, 28);
-      ctx.fillStyle = '#FD9F0F';
-      ctx.font = 'bold 24px Helvetica Neue,Helvetica,Arial,sans-serif';
-      ctx.fillText(presidencyPct, W - 24, 54);
+        // Shine strip (only when face-on)
+        if (squish > 0.35) {
+          ctx.fillStyle = 'rgba(255,255,255,0.38)';
+          ctx.beginPath();
+          ctx.ellipse(s.x - s.size * squish * 0.22, s.y, Math.max(0.5, s.size * squish * 0.28), s.size * 0.65, 0, 0, Math.PI * 2);
+          ctx.fill();
+        }
+        ctx.restore();
+      }
+    }
+
+    function drawBg() {
+      // Gradient sky
+      const grad = ctx.createLinearGradient(0, 0, 0, groundY);
+      grad.addColorStop(0,   '#04061a');
+      grad.addColorStop(0.6, '#08112e');
+      grad.addColorStop(1,   '#120820');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, W, groundY);
+
+      // Subtle horizon glow
+      const glow = ctx.createLinearGradient(0, groundY - 60, 0, groundY);
+      glow.addColorStop(0, 'rgba(253,159,15,0)');
+      glow.addColorStop(1, 'rgba(253,159,15,0.07)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, groundY - 60, W, 60);
+
+      // Scrolling speed lines
+      const s1 = (frames * speed * 0.1) % 140, s2 = (frames * speed * 0.28) % 90;
+      ctx.fillStyle = 'rgba(255,255,255,0.028)';
+      for (let y = groundY * 0.2; y < groundY; y += 52)
+        for (let x = -s1; x < W; x += 140) ctx.fillRect(x, y, 48, 1);
+      ctx.fillStyle = 'rgba(255,255,255,0.045)';
+      for (let y = groundY * 0.5; y < groundY; y += 72)
+        for (let x = -s2; x < W; x += 90) ctx.fillRect(x, y, 20, 1);
+    }
+
+    function drawGround() {
+      // Ground surface line with orange tint
+      ctx.fillStyle = '#5a3a00'; ctx.fillRect(0, groundY, W, 2);
+      ctx.fillStyle = 'rgba(253,159,15,0.25)'; ctx.fillRect(0, groundY, W, 1);
+      ctx.fillStyle = '#0d0a06'; ctx.fillRect(0, groundY + 2, W, H - groundY - 2);
+    }
+
+    function drawCharacter() {
+      ctx.save();
+      const onGround = trumpY >= groundY - CHAR_H - 2;
+      const airH     = (groundY - CHAR_H) - trumpY;
+      const shScale  = Math.max(0.15, 1 - airH / 200);
+
+      // Shadow
+      ctx.fillStyle = `rgba(0,0,0,${shScale * 0.28})`;
+      ctx.beginPath();
+      ctx.ellipse(CHAR_X + CHAR_W/2, groundY + 5, CHAR_W/2 * shScale, 4 * shScale, 0, 0, Math.PI*2);
+      ctx.fill();
+
+      // Bob + lean + squash
+      let bobY = 0, lean = 0, sx = 1, sy = 1;
+      if (onGround) { runCycle++; bobY = Math.sin(runCycle * 0.28) * 2.5; }
+      else lean = trumpVY < 0 ? -0.1 : 0.07;
+      if (squashTimer > 0) { const t = squashTimer-- / 10; sx = 1 + 0.18*t; sy = 1 - 0.14*t; }
+
+      ctx.translate(CHAR_X + CHAR_W/2, trumpY + CHAR_H/2 + bobY);
+      ctx.rotate(lean); ctx.scale(sx, sy);
+      if (invincibleTimer > 0) {
+        ctx.globalAlpha = Math.floor(invincibleTimer / 5) % 2 === 0 ? 1 : 0.35;
+        ctx.shadowBlur  = 24;
+        ctx.shadowColor = '#FFD700';
+      }
+      ctx.drawImage(getCharImg(), -CHAR_W/2, -CHAR_H/2, CHAR_W, CHAR_H);
+      ctx.globalAlpha = 1; ctx.shadowBlur = 0;
+      ctx.restore();
     }
 
     function drawObstacles() {
       for (const ob of obstacles) {
         const oy = groundY - ob.h;
-        ctx.fillStyle = '#c0392b';
-        ctx.fillRect(ob.x, oy, ob.w, ob.h);
+        // Body
+        ctx.fillStyle = '#c0392b'; ctx.fillRect(ob.x, oy, ob.w, ob.h);
+        // Top highlight
+        ctx.fillStyle = 'rgba(255,120,100,0.35)'; ctx.fillRect(ob.x, oy, ob.w, 3);
+        // Right shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.3)'; ctx.fillRect(ob.x + ob.w - 3, oy, 3, ob.h);
         if (ob.h > 32 && ob.w > 18) {
           ctx.save();
-          ctx.fillStyle = 'rgba(255,255,255,0.85)';
-          ctx.font = `bold ${Math.min(9, ob.w * 0.38)}px Helvetica Neue,Helvetica,Arial,sans-serif`;
+          ctx.fillStyle = 'rgba(255,255,255,0.82)';
+          ctx.font = `bold ${Math.min(9, ob.w * 0.38)}px Helvetica Neue,sans-serif`;
           ctx.textAlign = 'center';
-          ctx.translate(ob.x + ob.w / 2, oy + ob.h / 2);
-          ctx.rotate(-Math.PI / 2);
+          ctx.translate(ob.x + ob.w/2, oy + ob.h/2);
+          ctx.rotate(-Math.PI/2);
           ctx.fillText(ob.label, 0, 3);
           ctx.restore();
         }
       }
     }
 
+
+    function drawParticles() {
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const p = particles[i];
+        p.x += p.vx; p.y += p.vy; p.vy += 0.12; p.life -= 0.045;
+        if (p.life <= 0) { particles.splice(i, 1); continue; }
+        ctx.globalAlpha = p.life;
+        ctx.fillStyle = p.col;
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.r * p.life, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawFloatMsgs() {
+      for (let i = floatMsgs.length - 1; i >= 0; i--) {
+        const m = floatMsgs[i];
+        m.y += m.vy; m.life -= 0.016;
+        if (m.life <= 0) { floatMsgs.splice(i, 1); continue; }
+        ctx.globalAlpha = Math.min(1, m.life * 2.5);
+        ctx.fillStyle = m.col;
+        ctx.font = `${m.bold ? 'bold ' : ''}${m.size || 14}px Helvetica Neue,sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.fillText(m.text, m.x, m.y);
+      }
+      ctx.globalAlpha = 1;
+    }
+
+    function drawHUD() {
+      const sp = (score/1000).toFixed(3)+'%';
+      const pp = Math.max(FLOOR, realPct - score/1000).toFixed(2)+'%';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = 'rgba(255,255,255,0.4)';
+      ctx.font = '11px Helvetica Neue,sans-serif';
+      ctx.fillText('SCORE', 24, 28);
+      ctx.fillStyle = '#fff';
+      ctx.font = 'bold 24px Helvetica Neue,sans-serif';
+      ctx.fillText(sp, 24, 54);
+      if (combo >= 2 && comboTimer > 0) {
+        ctx.fillStyle = `rgba(255,215,0,${Math.min(1, comboTimer/40)})`;
+        ctx.font = 'bold 13px Helvetica Neue,sans-serif';
+        ctx.fillText('COMBO x' + combo, 24, 74);
+      }
+      ctx.textAlign = 'right';
+      ctx.fillStyle = 'rgba(253,159,15,0.5)';
+      ctx.font = '11px Helvetica Neue,sans-serif';
+      ctx.fillText('PRESIDENCY', W-24, 28);
+      ctx.fillStyle = '#FD9F0F';
+      ctx.font = 'bold 24px Helvetica Neue,sans-serif';
+      ctx.fillText(pp, W-24, 54);
+    }
+
+    // ── Main loop ──
     function frame(now) {
       ctx.clearRect(0, 0, W, H);
       drawGround();
 
       if (phase === 'intro') {
         if (!introT0) introT0 = now;
-        const t    = Math.min((now - introT0) / introDur, 1);
-        const ease = 1 - Math.pow(1 - t, 3);
-
-        const curH  = introSrcH + (CHAR_H  - introSrcH)  * ease;
-        const curW  = introSrcW + (CHAR_W  - introSrcW)  * ease;
-        const curCX = introSrcCX + (dstCX  - introSrcCX) * ease;
-        const curCY = introSrcCY + (dstCY  - introSrcCY) * ease;
-
-        ctx.drawImage(trumpImg, curCX - curW / 2, curCY - curH / 2, curW, curH);
+        const t = Math.min((now - introT0) / introDur, 1), e = 1 - Math.pow(1-t, 3);
+        const cH = introSrcH + (CHAR_H - introSrcH)*e, cW = introSrcW + (CHAR_W - introSrcW)*e;
+        const cX = introSrcCX + (dstCX - introSrcCX)*e, cY = introSrcCY + (dstCY - introSrcCY)*e;
+        ctx.drawImage(trumpImg, cX - cW/2, cY - cH/2, cW, cH);
         drawHUD();
         if (t >= 1) phase = 'playing';
         rafId = requestAnimationFrame(frame);
 
       } else if (phase === 'playing') {
-        trumpVY += GRAVITY;
-        trumpY  += trumpVY;
-        if (trumpY >= groundY - CHAR_H) { trumpY = groundY - CHAR_H; trumpVY = 0; }
+        drawBg();
 
-        frames++;
-        if (frames >= nextSpawn) {
-          spawnObstacle();
-          nextSpawn = frames + Math.max(45, 80 - score / 60) + Math.random() * 30;
+        // Physics
+        const wasAir = trumpY < groundY - CHAR_H - 2;
+        trumpVY += GRAVITY; trumpY += trumpVY;
+        if (trumpY >= groundY - CHAR_H) {
+          if (wasAir) squashTimer = 10;
+          trumpY = groundY - CHAR_H; trumpVY = 0; jumpsLeft = 2;
         }
 
+        // Spawning
+        frames++;
+        if (frames >= nextSpawn) { spawnObstacle(); nextSpawn = frames + Math.max(45, 80 - score/60) + Math.random()*30; }
+        if (frames >= nextStar)  { spawnStar();     nextStar  = frames + 150 + Math.random()*120; }
+
+        // Move
         speed = 4 + score / 300;
         for (const ob of obstacles) ob.x -= speed;
+        for (const s  of stars)     s.x  -= speed * 0.82;
         obstacles = obstacles.filter(ob => ob.x + ob.w > -10);
+        stars     = stars.filter(s => s.x > -s.size - 10);
         score++;
 
-        drawObstacles();
-        ctx.drawImage(trumpImg, CHAR_X, trumpY, CHAR_W, CHAR_H);
+        // Star collection
+        const cx = CHAR_X + CHAR_W/2, cy = trumpY + CHAR_H/2;
+        for (let i = stars.length - 1; i >= 0; i--) {
+          const s  = stars[i];
+          if (Math.hypot(cx - s.x, cy - s.y) < s.size + CHAR_W * 0.42) {
+            combo++; comboTimer = 90;
+            const mult = Math.min(combo, 5), bonus = s.value * mult;
+            score += bonus;
+            const col = s.size === STAR_SIZES[2] ? '#FF9F0F' : '#FFD700';
+            playSound('star');
+            invincibleTimer = 120;
+            spawnParticles(s.x, s.y, col);
+            const tag = combo > 1 ? `x${mult}  +${(bonus/1000).toFixed(0)}%` : `+${(s.value/1000).toFixed(0)}%`;
+            floatMsgs.push({ x: s.x, y: s.y - 10, text: tag, life: 1.1, vy: -1.5, col, size: 13 });
+            flashTimer = 7;
+            stars.splice(i, 1);
+          }
+        }
+        if (comboTimer > 0) comboTimer--; else combo = 0;
 
-        if (collides()) {
+        if (invincibleTimer > 0) invincibleTimer--;
+
+        handleNearMiss();
+
+        // Collision → game over
+        if (invincibleTimer === 0 && collides()) {
           phase = 'over';
+          playSound('gameOver');
           finalScore = score / 1000;
           finalScoreEl.textContent = 'SCORE: ' + finalScore.toFixed(3) + '%';
           const saved = localStorage.getItem('playerName');
-          if (saved) {
-            showNameSubmitted(saved);
-            doSubmit(saved);
-          } else {
-            showNameInput(false);
-          }
+          if (saved) { showNameSubmitted(saved); doSubmit(saved); } else showNameInput(false);
           gameOverEl.style.display = 'flex';
           showLeaderboard();
           drawHUD();
           return;
         }
 
+        // Draw
+        drawObstacles();
+        drawCoins();
+        drawParticles();
+        drawCharacter();
+        drawFloatMsgs();
+
+        if (flashTimer > 0) {
+          ctx.fillStyle = `rgba(255,215,0,${(flashTimer/7)*0.1})`;
+          ctx.fillRect(0, 0, W, H);
+          flashTimer--;
+        }
+
         if (score < 100) {
-          const alpha = Math.max(0, 1 - score / 80);
-          ctx.fillStyle = `rgba(255,255,255,${alpha * 0.45})`;
-          ctx.font = '13px Helvetica Neue,Helvetica,Arial,sans-serif';
+          ctx.globalAlpha = Math.max(0, 1 - score/80) * 0.45;
+          ctx.fillStyle = '#fff';
+          ctx.font = '13px Helvetica Neue,sans-serif';
           ctx.textAlign = 'center';
-          ctx.fillText('CLICK · TAP · SPACE  to jump', W / 2, groundY + 32);
+          ctx.fillText('CLICK · TAP · SPACE  to jump  (double jump available)', W/2, groundY + 32);
+          ctx.globalAlpha = 1;
         }
 
         drawHUD();
@@ -916,34 +1146,62 @@
       }
     }
 
-    function close() {
-      overlay.style.display = 'none';
-      cancelAnimationFrame(rafId);
+    function close() { overlay.style.display = 'none'; cancelAnimationFrame(rafId); }
+
+    // ── Leaderboard / name helpers ──
+    async function showLeaderboard() {
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '<div class="lb-loading">Loading...</div>';
+      try {
+        if (!window._getLeaderboard) { list.innerHTML = ''; return; }
+        const scores = await window._getLeaderboard();
+        if (!scores.length) { list.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
+        list.innerHTML = scores.map((s, i) => `
+          <div class="lb-row${s.score === finalScore ? ' lb-you' : ''}">
+            <span class="lb-rank">${i+1}</span>
+            <span class="lb-name">${s.name}</span>
+            <span class="lb-score">${Number(s.score).toFixed(3)}%</span>
+          </div>`).join('');
+      } catch(e) { list.innerHTML = '<div class="lb-empty">Could not load scores.</div>'; }
     }
 
-    // ── Name persistence helpers ──
     function showNameInput(editMode) {
       document.getElementById('name-input-row').style.display = 'flex';
       document.getElementById('name-submitted-row').style.display = 'none';
       const inp = document.getElementById('player-name');
       inp.value = editMode ? (localStorage.getItem('playerName') || '') : '';
       const btn = document.getElementById('submit-score-btn');
-      btn.textContent = editMode ? 'SAVE' : 'SUBMIT';
-      btn.disabled = false;
+      btn.textContent = editMode ? 'SAVE' : 'SUBMIT'; btn.disabled = false;
     }
 
     function showNameSubmitted(name) {
       document.getElementById('name-input-row').style.display = 'none';
-      const row = document.getElementById('name-submitted-row');
-      row.style.display = 'flex';
+      document.getElementById('name-submitted-row').style.display = 'flex';
       document.getElementById('submitted-as-text').textContent = 'Submitted as ' + name + ' ✓';
     }
 
     async function doSubmit(name) {
       if (!window._saveScore) return;
-      try { await window._saveScore(name, finalScore); } catch (e) {}
+      try {
+        await window._saveScore(name, finalScore);
+        showPlayerRank();
+      } catch(e) {}
     }
 
+    async function showPlayerRank() {
+      const el = document.getElementById('player-rank');
+      el.style.display = 'none';
+      if (!window._getRank) return;
+      try {
+        const rank = await window._getRank(finalScore);
+        if (rank > 10) {
+          el.textContent = `YOUR RANK: #${rank} GLOBALLY`;
+          el.style.display = 'block';
+        }
+      } catch(e) {}
+    }
+
+    // ── Events ──
     canvas.addEventListener('click', jump);
     document.addEventListener('keydown', e => {
       if (overlay.style.display !== 'block') return;
@@ -958,23 +1216,14 @@
       const name = inp.value.trim().toUpperCase().slice(0, 20);
       if (!name) { inp.focus(); return; }
       const btn = document.getElementById('submit-score-btn');
-      btn.disabled = true;
-      btn.textContent = '...';
+      btn.disabled = true; btn.textContent = '...';
       localStorage.setItem('playerName', name);
       await doSubmit(name);
       showNameSubmitted(name);
       showLeaderboard();
     });
-
-    document.getElementById('edit-name-btn').addEventListener('click', () => {
-      showNameInput(true);
-    });
-
-    retryBtn.addEventListener('click', () => {
-      resetState();
-      phase = 'playing';
-      rafId = requestAnimationFrame(frame);
-    });
+    document.getElementById('edit-name-btn').addEventListener('click', () => showNameInput(true));
+    retryBtn.addEventListener('click', () => { resetState(); phase = 'playing'; rafId = requestAnimationFrame(frame); });
     exitBtn.addEventListener('click', close);
 
     window._startTrumpGame = open;
