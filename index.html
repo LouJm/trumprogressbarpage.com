@@ -429,7 +429,7 @@
 
 <script type="module">
   import { initializeApp }                                          from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-  import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs, where, getCountFromServer } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+  import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyA5jS3bUxSAgxThYrMHOylyOCADo9y-_bw",
@@ -444,23 +444,18 @@
   const db  = getFirestore(app);
 
   window._saveScore = async (name, scoreVal) => {
-    await addDoc(collection(db, 'scores'), {
-      name:  name.trim().toUpperCase().slice(0, 20),
-      score: scoreVal,
-      ts:    Date.now()
-    });
+    const cleanName = name.trim().toUpperCase().slice(0, 20);
+    const docRef    = doc(db, 'scores', cleanName);
+    const existing  = await getDoc(docRef);
+    if (!existing.exists() || existing.data().score < scoreVal) {
+      await setDoc(docRef, { name: cleanName, score: scoreVal, ts: Date.now() });
+    }
   };
 
   window._getLeaderboard = async () => {
     const q    = query(collection(db, 'scores'), orderBy('score', 'desc'), limit(10));
     const snap = await getDocs(q);
     return snap.docs.map(d => d.data());
-  };
-
-  window._getRank = async (scoreVal) => {
-    const q    = query(collection(db, 'scores'), where('score', '>', scoreVal));
-    const snap = await getCountFromServer(q);
-    return snap.data().count + 1;
   };
 </script>
 
