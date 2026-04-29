@@ -1031,7 +1031,7 @@
 
     function drawHUD() {
       const sp = (score/1000).toFixed(3)+'%';
-      const pp = Math.max(FLOOR, realPct - score/1000).toFixed(2)+'%';
+      const pp = Math.min(CEILING, realPct + score/1000).toFixed(2)+'%';
       ctx.textAlign = 'left';
       ctx.fillStyle = 'rgba(255,255,255,0.4)';
       ctx.font = '11px Helvetica Neue,sans-serif';
@@ -1164,20 +1164,48 @@
     }
 
     // ── Leaderboard / name helpers ──
+    function renderLbRows(list, scores) {
+      if (!scores.length) { list.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
+      list.innerHTML = scores.map((s, i) => `
+        <div class="lb-row${Number(s.score).toFixed(3) === finalScore.toFixed(3) ? ' lb-you' : ''}">
+          <span class="lb-rank">${i+1}</span>
+          <span class="lb-name">${s.name}</span>
+          <span class="lb-score">${Number(s.score).toFixed(3)}%</span>
+        </div>`).join('');
+
+      // Show rank if outside top 10 using local data — no extra network call
+      const rankEl = document.getElementById('player-rank');
+      const inTop  = scores.some(s => Number(s.score).toFixed(3) === finalScore.toFixed(3));
+      if (!inTop && scores.length === 10 && finalScore < scores[scores.length - 1].score) {
+        rankEl.style.display = 'block';
+        rankEl.textContent   = 'YOU DIDN\'T MAKE THE TOP 10 — KEEP GOING!';
+      } else {
+        rankEl.style.display = 'none';
+      }
+    }
+
     async function showLeaderboard() {
-      const list = document.getElementById('leaderboard-list');
-      list.innerHTML = '<div class="lb-loading">Loading...</div>';
+      const list   = document.getElementById('leaderboard-list');
+      const rankEl = document.getElementById('player-rank');
+      rankEl.style.display = 'none';
+
+      // Show cached data instantly while fetching fresh
+      const cached = localStorage.getItem('lb_cache');
+      if (cached) {
+        try { renderLbRows(list, JSON.parse(cached)); } catch(e) {}
+      } else {
+        list.innerHTML = '<div class="lb-loading">Loading...</div>';
+      }
+
+      if (!window._getLeaderboard) return;
       try {
-        if (!window._getLeaderboard) { list.innerHTML = ''; return; }
-        const scores = await window._getLeaderboard();
-        if (!scores.length) { list.innerHTML = '<div class="lb-empty">No scores yet — be first!</div>'; return; }
-        list.innerHTML = scores.map((s, i) => `
-          <div class="lb-row${s.score === finalScore ? ' lb-you' : ''}">
-            <span class="lb-rank">${i+1}</span>
-            <span class="lb-name">${s.name}</span>
-            <span class="lb-score">${Number(s.score).toFixed(3)}%</span>
-          </div>`).join('');
-      } catch(e) { list.innerHTML = '<div class="lb-empty">Could not load scores.</div>'; }
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+        const scores  = await Promise.race([window._getLeaderboard(), timeout]);
+        localStorage.setItem('lb_cache', JSON.stringify(scores));
+        renderLbRows(list, scores);
+      } catch(e) {
+        if (!cached) list.innerHTML = '<div class="lb-empty">Could not load — check connection.</div>';
+      }
     }
 
     function showNameInput(editMode) {
@@ -1198,21 +1226,9 @@
     async function doSubmit(name) {
       if (!window._saveScore) return;
       try {
-        await window._saveScore(name, finalScore);
-        showPlayerRank();
-      } catch(e) {}
-    }
-
-    async function showPlayerRank() {
-      const el = document.getElementById('player-rank');
-      el.style.display = 'none';
-      if (!window._getRank) return;
-      try {
-        const rank = await window._getRank(finalScore);
-        if (rank > 10) {
-          el.textContent = `YOUR RANK: #${rank} GLOBALLY`;
-          el.style.display = 'block';
-        }
+        const timeout = new Promise((_, rej) => setTimeout(() => rej(new Error('timeout')), 5000));
+        await Promise.race([window._saveScore(name, finalScore), timeout]);
+        showLeaderboard();
       } catch(e) {}
     }
 
