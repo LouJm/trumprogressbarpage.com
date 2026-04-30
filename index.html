@@ -429,7 +429,7 @@
 
 <script type="module">
   import { initializeApp }                                          from "https://www.gstatic.com/firebasejs/12.12.1/firebase-app.js";
-  import { getFirestore, collection, query, orderBy, limit, getDocs, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
+  import { getFirestore, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/12.12.1/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey:            "AIzaSyA5jS3bUxSAgxThYrMHOylyOCADo9y-_bw",
@@ -444,12 +444,11 @@
   const db  = getFirestore(app);
 
   window._saveScore = async (name, scoreVal) => {
-    const cleanName = name.trim().toUpperCase().slice(0, 20);
-    const docRef    = doc(db, 'scores', cleanName);
-    const existing  = await getDoc(docRef);
-    if (!existing.exists() || existing.data().score < scoreVal) {
-      await setDoc(docRef, { name: cleanName, score: scoreVal, ts: Date.now() });
-    }
+    await addDoc(collection(db, 'scores'), {
+      name:  name.trim().toUpperCase().slice(0, 20),
+      score: scoreVal,
+      ts:    Date.now()
+    });
   };
 
   window._getLeaderboard = async () => {
