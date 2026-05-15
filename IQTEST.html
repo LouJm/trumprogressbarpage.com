@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Download the App</title>
+<style>
+  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body {
+    height: 100%;
+    background: #000;
+    color: #fff;
+    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .wrap {
+    text-align: center;
+    padding: 40px 24px;
+    max-width: 360px;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 10px;
+  }
+  p {
+    font-size: 14px;
+    color: rgba(255,255,255,0.45);
+    margin-bottom: 32px;
+    line-height: 1.5;
+  }
+  .btn {
+    display: block;
+    width: 100%;
+    padding: 14px 0;
+    margin-bottom: 12px;
+    background: transparent;
+    color: #fff;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    border: 2px solid rgba(255,255,255,0.4);
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .btn:hover { border-color: #fff; background: rgba(255,255,255,0.06); }
+  .btn.primary { border-color: #FD9F0F; color: #FD9F0F; }
+  .btn.primary:hover { background: rgba(253,159,15,0.08); }
+</style>
+<script>
+  (function () {
+    var HOME = 'https://www.trumpprogressbarpage.com/';
+    var ua = navigator.userAgent || '';
+    if (/android/i.test(ua)) {
+      window.location.href = 'https://play.google.com/store/apps/details?id=com.blueiq.test';
+      setTimeout(function () { window.location.replace(HOME); }, 1500);
+    } else if (/iphone|ipad|ipod/i.test(ua)) {
+      window.location.href = 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173';
+      setTimeout(function () { window.location.replace(HOME); }, 1500);
+    }
+    // Desktop: fall through, show the page below
+  })();
+</script>
+</head>
+<body>
+<div class="wrap">
+  <h1>Get the App</h1>
+  <p>Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
+  <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.blueiq.test">
+    &#9654; Android — Google Play
+  </a>
+  <a class="btn primary" href="https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173">
+    &#9654; iPhone / iPad — App Store
+  </a>
+  <a class="btn" href="https://www.trumpprogressbarpage.com/">
+    Back to site
+  </a>
+</div>
+</body>
+</html>
