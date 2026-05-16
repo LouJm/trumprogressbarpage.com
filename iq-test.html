@@ -61,9 +61,10 @@
     } else if (/iphone|ipad|ipod/i.test(ua)) {
       window.location.href = 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173';
       setTimeout(function () { window.location.replace(HOME); }, 1500);
+    } else {
+      // Desktop: go to homepage
+      window.location.replace(HOME);
     }
-    // Desktop: go to homepage
-    window.location.replace(HOME);
   })();
 </script>
 </head>
