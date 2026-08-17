@@ -56,6 +56,8 @@
   (function () {
     var HOME = 'https://www.trumpprogressbarpage.com/';
     var ua = navigator.userAgent || '';
+    var isIOS = /iphone|ipad|ipod/i.test(ua);
+    var isAndroid = /android/i.test(ua);
     var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|TikTok|musical_ly|MicroMessenger|LinkedInApp/i.test(ua);
     var leftPage = false;
     function markLeft() { leftPage = true; }
@@ -65,29 +67,45 @@
     window.addEventListener('pagehide', markLeft);
     window.addEventListener('blur', markLeft);
 
-    function fallbackHome(delay) {
-      setTimeout(function () {
-        if (!leftPage) window.location.replace(HOME);
-      }, delay);
+    function showWrap() {
+      var wrap = document.getElementById('wrap');
+      if (wrap) wrap.style.visibility = 'visible';
     }
 
     if (isInApp) {
-      // In-app browsers (Instagram/FB/TikTok/etc.) often block store redirects — show manual buttons instead.
+      // In-app browsers (Instagram/FB/TikTok/etc.) silently block App Store navigation — hand off to real Safari/Chrome instead.
       document.addEventListener('DOMContentLoaded', function () {
         var msg = document.getElementById('redirectMsg');
         var tip = document.getElementById('inAppTip');
         if (msg) msg.style.display = 'none';
+        if (isIOS) {
+          var safariBtn = document.getElementById('openSafariBtn');
+          if (safariBtn) {
+            safariBtn.href = 'x-safari-https://' + window.location.href.replace(/^https?:\/\//, '');
+            safariBtn.style.display = 'block';
+          }
+          if (tip) tip.textContent = 'You’re in an in-app browser, which blocks App Store links. Tap “Open in Safari” below — if nothing happens, tap the ••• icon and choose “Open in Safari” manually.';
+        } else if (tip) {
+          tip.textContent = 'You’re in an in-app browser, which blocks store links. Tap the ⋮ menu and choose “Open in Chrome/Browser”, then use a button below.';
+        }
         if (tip) tip.style.display = 'block';
+        showWrap();
       });
       return;
     }
 
-    if (/android/i.test(ua)) {
+    function revealIfStuck(delay) {
+      setTimeout(function () {
+        if (!leftPage) showWrap();
+      }, delay);
+    }
+
+    if (isAndroid) {
       window.location.href = 'https://play.google.com/store/apps/details?id=com.testapps.adhd';
-      fallbackHome(2500);
-    } else if (/iphone|ipad|ipod/i.test(ua)) {
+      revealIfStuck(1200);
+    } else if (isIOS) {
       window.location.href = 'https://apps.apple.com/nz/app/adhd-test-app/id6737468288';
-      fallbackHome(2500);
+      revealIfStuck(1200);
     } else {
       // Desktop: go to homepage
       window.location.replace(HOME);
@@ -96,10 +114,11 @@
 </script>
 </head>
 <body>
-<div class="wrap">
+<div class="wrap" id="wrap" style="visibility:hidden;">
   <h1>Get the App</h1>
   <p id="redirectMsg">Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
-  <p id="inAppTip" style="display:none; color:#FD9F0F; margin-bottom:20px; font-size:13px; line-height:1.5;">You're in an in-app browser, which can block store links. Tap the &bull;&bull;&bull; or share icon and choose &ldquo;Open in Browser&rdquo;, then use a button below.</p>
+  <p id="inAppTip" style="display:none; color:#FD9F0F; margin-bottom:20px; font-size:13px; line-height:1.5;"></p>
+  <a id="openSafariBtn" class="btn primary" style="display:none;" href="#">&#9654; Open in Safari</a>
   <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.testapps.adhd">
     &#9654; Android — Google Play
   </a>
@@ -110,5 +129,6 @@
     Back to site
   </a>
 </div>
+<noscript><style>#wrap{visibility:visible !important;}</style></noscript>
 </body>
 </html>
