@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-itunes-app" content="app-id=1505911173">
 <title>Download the App</title>
 <style>
   *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
@@ -55,12 +56,38 @@
   (function () {
     var HOME = 'https://www.trumpprogressbarpage.com/';
     var ua = navigator.userAgent || '';
+    var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|TikTok|musical_ly|MicroMessenger|LinkedInApp/i.test(ua);
+    var leftPage = false;
+    function markLeft() { leftPage = true; }
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) markLeft();
+    });
+    window.addEventListener('pagehide', markLeft);
+    window.addEventListener('blur', markLeft);
+
+    function fallbackHome(delay) {
+      setTimeout(function () {
+        if (!leftPage) window.location.replace(HOME);
+      }, delay);
+    }
+
+    if (isInApp) {
+      // In-app browsers (Instagram/FB/TikTok/etc.) often block store redirects — show manual buttons instead.
+      document.addEventListener('DOMContentLoaded', function () {
+        var msg = document.getElementById('redirectMsg');
+        var tip = document.getElementById('inAppTip');
+        if (msg) msg.style.display = 'none';
+        if (tip) tip.style.display = 'block';
+      });
+      return;
+    }
+
     if (/android/i.test(ua)) {
       window.location.href = 'https://play.google.com/store/apps/details?id=com.blueiq.test';
-      setTimeout(function () { window.location.replace(HOME); }, 1500);
+      fallbackHome(2500);
     } else if (/iphone|ipad|ipod/i.test(ua)) {
       window.location.href = 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173';
-      setTimeout(function () { window.location.replace(HOME); }, 1500);
+      fallbackHome(2500);
     } else {
       // Desktop: go to homepage
       window.location.replace(HOME);
@@ -71,7 +98,8 @@
 <body>
 <div class="wrap">
   <h1>Get the App</h1>
-  <p>Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
+  <p id="redirectMsg">Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
+  <p id="inAppTip" style="display:none; color:#FD9F0F; margin-bottom:20px; font-size:13px; line-height:1.5;">You're in an in-app browser, which can block store links. Tap the &bull;&bull;&bull; or share icon and choose &ldquo;Open in Browser&rdquo;, then use a button below.</p>
   <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.blueiq.test">
     &#9654; Android — Google Play
   </a>
