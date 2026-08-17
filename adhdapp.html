@@ -84,6 +84,11 @@
             safariBtn.href = 'x-safari-https://apps.apple.com/nz/app/adhd-test-app/id6737468288';
             safariBtn.style.display = 'block';
           }
+          var itmsBtn = document.getElementById('itmsBtn');
+          if (itmsBtn) {
+            itmsBtn.href = 'itms-apps://apps.apple.com/nz/app/adhd-test-app/id6737468288';
+            itmsBtn.style.display = 'block';
+          }
           if (tip) tip.textContent = 'You’re in an in-app browser, which blocks App Store links. Tap “Open in Safari” below — if nothing happens, tap the ••• icon and choose “Open in Safari” manually.';
         } else if (tip) {
           tip.textContent = 'You’re in an in-app browser, which blocks store links. Tap the ⋮ menu and choose “Open in Chrome/Browser”, then use a button below.';
@@ -119,10 +124,11 @@
   <p id="redirectMsg">Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
   <p id="inAppTip" style="display:none; color:#FD9F0F; margin-bottom:20px; font-size:13px; line-height:1.5;"></p>
   <a id="openSafariBtn" class="btn primary" style="display:none;" href="#">&#9654; Open in Safari</a>
-  <a class="btn primary" href="https://play.google.com/store/apps/details?id=com.testapps.adhd">
+  <a id="itmsBtn" style="display:none; color:rgba(255,255,255,0.5); font-size:12px; text-decoration:underline; margin-bottom:16px;" href="#">Still stuck? Try direct App Store link</a>
+  <a class="btn primary" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=com.testapps.adhd">
     &#9654; Android — Google Play
   </a>
-  <a class="btn primary" href="https://apps.apple.com/nz/app/adhd-test-app/id6737468288">
+  <a class="btn primary" target="_blank" rel="noopener" href="https://apps.apple.com/nz/app/adhd-test-app/id6737468288">
     &#9654; iPhone / iPad — App Store
   </a>
   <a class="btn" href="https://www.trumpprogressbarpage.com/">
