@@ -190,6 +190,7 @@
     var ua = navigator.userAgent || '';
     var isIOS = /iphone|ipad|ipod/i.test(ua);
     var isAndroid = /android/i.test(ua);
+    var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|TikTok|musical_ly|MicroMessenger|LinkedInApp|Snapchat|Pinterest|Discord|; wv\)/i.test(ua);
 
     if (!isIOS && !isAndroid) {
       window.location.replace(HOME);
@@ -198,22 +199,21 @@
 
     var storeUrl = isIOS ? STORE_IOS : STORE_ANDROID;
 
-    var leftPage = false;
-    function markLeft() { leftPage = true; }
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) markLeft();
-    });
-    window.addEventListener('pagehide', markLeft);
-    window.addEventListener('blur', markLeft);
-
     function $(id) { return document.getElementById(id); }
 
+    var teaserShown = false;
     function revealTeaser() {
+      if (teaserShown) return;
+      teaserShown = true;
       var wrap = $('wrap');
       if (wrap) wrap.style.visibility = 'visible';
     }
 
+    var errorShown = false;
     function showInAppError() {
+      if (errorShown) return;
+      errorShown = true;
+      revealTeaser();
       $('continueBtn').style.display = 'none';
       $('errorBox').style.display = 'block';
       $('cornerPointer').style.display = 'flex';
@@ -228,23 +228,31 @@
       }
     }
 
-    // Attempt 1: try the store immediately. If we're still here after a
-    // beat, the nav got blocked (in-app browser) — fall back to the teaser
-    // screen instead of sitting on a blank page.
-    window.location.href = storeUrl;
-    setTimeout(function () {
-      if (!leftPage) revealTeaser();
-    }, 1200);
+    if (isInApp) {
+      // Known in-app browsers (Instagram/FB/TikTok/etc.) can hang or wipe
+      // the page on an unsolicited store navigation — don't risk that on
+      // load. Go straight to the teaser and only attempt the store link
+      // once the user actually taps Continue.
+      document.addEventListener('DOMContentLoaded', revealTeaser);
+    } else {
+      // Attempt 1: try the store immediately. If we're still here after a
+      // beat (checked live, not via a sticky flag — a transient OS "Open in
+      // App Store?" prompt can blur/hide the page without us ever leaving
+      // it), fall back to the teaser screen instead of sitting blank.
+      window.location.href = storeUrl;
+      setTimeout(function () {
+        if (!document.hidden) revealTeaser();
+      }, 1200);
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
       $('continueBtn').addEventListener('click', function (e) {
         e.preventDefault();
         // Attempt 2: retry with a real user gesture behind it. If that also
         // gets swallowed, show the "open externally" instructions.
-        leftPage = false;
         window.location.href = storeUrl;
         setTimeout(function () {
-          if (!leftPage) showInAppError();
+          if (!document.hidden) showInAppError();
         }, 900);
       });
     });
