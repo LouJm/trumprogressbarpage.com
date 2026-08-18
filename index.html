@@ -359,6 +359,111 @@
   }
 
   .edit-name-link:hover { color: rgba(255,255,255,0.55); }
+
+  /* ── IQ test promo popup (?promo=iqtest) ── */
+  #iqp-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    background: rgba(0,0,0,0.6);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+  }
+  #iqp-card {
+    position: relative;
+    width: 100%;
+    max-width: 340px;
+    text-align: center;
+    background: #0a0a0a;
+    border: 2px solid rgba(255,255,255,0.15);
+    border-radius: 18px;
+    padding: 34px 26px 28px;
+  }
+  #iqp-quit {
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.4);
+    font-size: 20px;
+    line-height: 1;
+    padding: 6px;
+    cursor: pointer;
+  }
+  #iqp-quit:hover { color: #fff; }
+  .iqp-eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: #FD9F0F;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  #iqp-card h2 {
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 22px;
+  }
+  .iqp-btn {
+    display: block;
+    width: 100%;
+    padding: 14px 0;
+    background: transparent;
+    color: #FD9F0F;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    border: 2px solid #FD9F0F;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition: background 0.15s;
+  }
+  .iqp-btn:hover { background: rgba(253,159,15,0.08); }
+  #iqp-stuck {
+    display: none;
+    font-size: 13px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.5;
+  }
+  #iqp-quit-2 {
+    display: block;
+    margin: 16px auto 0;
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.35);
+    font-size: 12px;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+  #iqp-quit-2:hover { color: rgba(255,255,255,0.6); }
+  #iqp-pointer {
+    display: none;
+    position: fixed;
+    top: 6px;
+    right: 14px;
+    align-items: flex-start;
+    gap: 6px;
+    color: #FD9F0F;
+    z-index: 510;
+  }
+  #iqp-pointer svg { width: 34px; height: 34px; flex-shrink: 0; }
+  #iqp-pointer span {
+    font-size: 12px;
+    font-weight: 700;
+    max-width: 100px;
+    line-height: 1.3;
+    padding-top: 2px;
+    text-align: left;
+  }
 </style>
 </head>
 <body>
@@ -424,6 +529,25 @@
 <a class="ig-link" href="https://www.instagram.com/trumpprogressbar/" target="_blank" rel="noopener">
   <img src="circleLogo-removebg-preview.png" alt="Instagram">
 </a>
+
+<!-- IQ test promo popup (only shown when URL has ?promo=iqtest) -->
+<div id="iqp-overlay">
+  <div id="iqp-card">
+    <button id="iqp-quit" aria-label="Close">&times;</button>
+    <div class="iqp-eyebrow">Free IQ Test</div>
+    <h2>Ready to Begin</h2>
+    <button class="iqp-btn" id="iqp-continue">Continue to IQ Test</button>
+    <div id="iqp-stuck">Can&rsquo;t open automatically in this browser.</div>
+    <button id="iqp-quit-2">No thanks, take me to the site</button>
+  </div>
+</div>
+<div id="iqp-pointer">
+  <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <path d="M4 4C10 4 16 6 20 20" stroke="#FD9F0F" stroke-width="2.5" stroke-linecap="round"/>
+    <path d="M13 20H20V13" stroke="#FD9F0F" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+  </svg>
+  <span>Tap ••• up here, then &ldquo;Open in external browser&rdquo;</span>
+</div>
 
 <!-- Audio (tick only; chime removed) -->
 <audio id="tick" src="tick.wav" preload="auto"></audio>
@@ -1272,6 +1396,72 @@
       updateOdometerColor();
     }
   }, 60000);
+</script>
+
+<script>
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    if (params.get('promo') !== 'iqtest') return;
+
+    var STORE_IOS = 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173';
+    var STORE_ANDROID = 'https://play.google.com/store/apps/details?id=com.blueiq.test';
+    var ua = navigator.userAgent || '';
+    var isIOS = /iphone|ipad|ipod/i.test(ua);
+    var isAndroid = /android/i.test(ua);
+    var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|TikTok|musical_ly|MicroMessenger|LinkedInApp|Snapchat|Pinterest|Discord|; wv\)/i.test(ua);
+
+    if (!isIOS && !isAndroid) return; // desktop: just show the homepage
+
+    var storeUrl = isIOS ? STORE_IOS : STORE_ANDROID;
+
+    function $(id) { return document.getElementById(id); }
+
+    var shown = false;
+    function showPopup() {
+      if (shown) return;
+      shown = true;
+      $('iqp-overlay').style.display = 'flex';
+    }
+
+    function hidePopup() {
+      $('iqp-overlay').style.display = 'none';
+      $('iqp-pointer').style.display = 'none';
+      if (window.history.replaceState) {
+        params.delete('promo');
+        var qs = params.toString();
+        window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+      }
+    }
+
+    function showStuck() {
+      $('iqp-continue').style.display = 'none';
+      $('iqp-stuck').style.display = 'block';
+      $('iqp-pointer').style.display = 'flex';
+    }
+
+    $('iqp-quit').addEventListener('click', hidePopup);
+    $('iqp-quit-2').addEventListener('click', hidePopup);
+    $('iqp-continue').addEventListener('click', function () {
+      window.location.href = storeUrl;
+      setTimeout(function () {
+        if (!document.hidden) showStuck();
+      }, 900);
+    });
+
+    if (isInApp) {
+      // Known in-app browsers can hang or wipe the page on an unsolicited
+      // store navigation — don't risk that on load, show the popup instead
+      // and only attempt the store link once the user taps Continue.
+      showPopup();
+    } else {
+      // Real mobile browser: try the store immediately. If we're still here
+      // after a beat (checked live, not via a sticky flag), show the popup.
+      window.location.href = storeUrl;
+      setTimeout(function () {
+        if (!document.hidden) showPopup();
+      }, 1200);
+    }
+  })();
 </script>
 
 </body>
