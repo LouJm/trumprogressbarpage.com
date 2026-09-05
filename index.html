@@ -530,13 +530,13 @@
   <img src="circleLogo-removebg-preview.png" alt="Instagram">
 </a>
 
-<!-- IQ test promo popup (only shown when URL has ?promo=iqtest) -->
+<!-- App promo popup (only shown when URL has ?promo=iqtest or ?promo=adhdtest) -->
 <div id="iqp-overlay">
   <div id="iqp-card">
     <button id="iqp-quit" aria-label="Close">&times;</button>
-    <div class="iqp-eyebrow">Free IQ Test</div>
-    <h2>Ready to Begin</h2>
-    <button class="iqp-btn" id="iqp-continue">Continue to IQ Test</button>
+    <div class="iqp-eyebrow" id="iqp-eyebrow">Free IQ Test</div>
+    <h2 id="iqp-title">Ready to Begin</h2>
+    <button class="iqp-btn" id="iqp-continue">Continue</button>
     <div id="iqp-stuck">Can&rsquo;t open automatically in this browser.</div>
     <button id="iqp-quit-2">No thanks, take me to the site</button>
   </div>
@@ -1400,11 +1400,23 @@
 
 <script>
   (function () {
-    var params = new URLSearchParams(window.location.search);
-    if (params.get('promo') !== 'iqtest') return;
+    var PROMOS = {
+      iqtest: {
+        eyebrow: 'Free IQ Test',
+        storeIOS: 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173',
+        storeAndroid: 'https://play.google.com/store/apps/details?id=com.blueiq.test'
+      },
+      adhdtest: {
+        eyebrow: 'Free ADHD Test',
+        storeIOS: 'https://apps.apple.com/nz/app/adhd-test-app/id6737468288',
+        storeAndroid: 'https://play.google.com/store/apps/details?id=com.testapps.adhd'
+      }
+    };
 
-    var STORE_IOS = 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173';
-    var STORE_ANDROID = 'https://play.google.com/store/apps/details?id=com.blueiq.test';
+    var params = new URLSearchParams(window.location.search);
+    var promo = PROMOS[params.get('promo')];
+    if (!promo) return;
+
     var ua = navigator.userAgent || '';
     var isIOS = /iphone|ipad|ipod/i.test(ua);
     var isAndroid = /android/i.test(ua);
@@ -1412,9 +1424,11 @@
 
     if (!isIOS && !isAndroid) return; // desktop: just show the homepage
 
-    var storeUrl = isIOS ? STORE_IOS : STORE_ANDROID;
+    var storeUrl = isIOS ? promo.storeIOS : promo.storeAndroid;
 
     function $(id) { return document.getElementById(id); }
+
+    $('iqp-eyebrow').textContent = promo.eyebrow;
 
     var shown = false;
     function showPopup() {

@@ -3,138 +3,19 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="apple-itunes-app" content="app-id=6737468288">
-<title>Download the App</title>
+<title>Free ADHD Test</title>
 <style>
-  *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body {
-    height: 100%;
-    background: #000;
-    color: #fff;
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
-  .wrap {
-    text-align: center;
-    padding: 40px 24px;
-    max-width: 360px;
-  }
-  h1 {
-    font-size: 22px;
-    font-weight: 700;
-    letter-spacing: -0.02em;
-    margin-bottom: 10px;
-  }
-  p {
-    font-size: 14px;
-    color: rgba(255,255,255,0.45);
-    margin-bottom: 32px;
-    line-height: 1.5;
-  }
-  .btn {
-    display: block;
-    width: 100%;
-    padding: 14px 0;
-    margin-bottom: 12px;
-    background: transparent;
-    color: #fff;
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 700;
-    letter-spacing: 0.06em;
-    border: 2px solid rgba(255,255,255,0.4);
-    text-decoration: none;
-    transition: border-color 0.15s, background 0.15s;
-  }
-  .btn:hover { border-color: #fff; background: rgba(255,255,255,0.06); }
-  .btn.primary { border-color: #FD9F0F; color: #FD9F0F; }
-  .btn.primary:hover { background: rgba(253,159,15,0.08); }
+  html, body { height: 100%; margin: 0; background: #000; }
 </style>
 <script>
-  (function () {
-    var HOME = 'https://www.trumpprogressbarpage.com/';
-    var ua = navigator.userAgent || '';
-    var isIOS = /iphone|ipad|ipod/i.test(ua);
-    var isAndroid = /android/i.test(ua);
-    var isInApp = /FBAN|FBAV|Instagram|Line\/|Twitter|TikTok|musical_ly|MicroMessenger|LinkedInApp/i.test(ua);
-    var leftPage = false;
-    function markLeft() { leftPage = true; }
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) markLeft();
-    });
-    window.addEventListener('pagehide', markLeft);
-    window.addEventListener('blur', markLeft);
-
-    function showWrap() {
-      var wrap = document.getElementById('wrap');
-      if (wrap) wrap.style.visibility = 'visible';
-    }
-
-    if (isInApp) {
-      // In-app browsers (Instagram/FB/TikTok/etc.) silently block App Store navigation — hand off to real Safari/Chrome instead.
-      document.addEventListener('DOMContentLoaded', function () {
-        var msg = document.getElementById('redirectMsg');
-        var tip = document.getElementById('inAppTip');
-        if (msg) msg.style.display = 'none';
-        if (isIOS) {
-          var safariBtn = document.getElementById('openSafariBtn');
-          if (safariBtn) {
-            safariBtn.href = 'x-safari-https://apps.apple.com/nz/app/adhd-test-app/id6737468288';
-            safariBtn.style.display = 'block';
-          }
-          var itmsBtn = document.getElementById('itmsBtn');
-          if (itmsBtn) {
-            itmsBtn.href = 'itms-apps://apps.apple.com/nz/app/adhd-test-app/id6737468288';
-            itmsBtn.style.display = 'block';
-          }
-          if (tip) tip.textContent = 'You’re in an in-app browser, which blocks App Store links. Tap “Open in Safari” below — if nothing happens, tap the ••• icon and choose “Open in Safari” manually.';
-        } else if (tip) {
-          tip.textContent = 'You’re in an in-app browser, which blocks store links. Tap the ⋮ menu and choose “Open in Chrome/Browser”, then use a button below.';
-        }
-        if (tip) tip.style.display = 'block';
-        showWrap();
-      });
-      return;
-    }
-
-    function revealIfStuck(delay) {
-      setTimeout(function () {
-        if (!leftPage) showWrap();
-      }, delay);
-    }
-
-    if (isAndroid) {
-      window.location.href = 'https://play.google.com/store/apps/details?id=com.testapps.adhd';
-      revealIfStuck(1200);
-    } else if (isIOS) {
-      window.location.href = 'https://apps.apple.com/nz/app/adhd-test-app/id6737468288';
-      revealIfStuck(1200);
-    } else {
-      // Desktop: go to homepage
-      window.location.replace(HOME);
-    }
-  })();
+  window.location.replace('https://www.trumpprogressbarpage.com/?promo=adhdtest');
 </script>
 </head>
 <body>
-<div class="wrap" id="wrap" style="visibility:hidden;">
-  <h1>Get the App</h1>
-  <p id="redirectMsg">Redirecting you to the right store&hellip;<br>Or pick your platform below.</p>
-  <p id="inAppTip" style="display:none; color:#FD9F0F; margin-bottom:20px; font-size:13px; line-height:1.5;"></p>
-  <a id="openSafariBtn" class="btn primary" style="display:none;" href="#">&#9654; Open in Safari</a>
-  <a id="itmsBtn" style="display:none; color:rgba(255,255,255,0.5); font-size:12px; text-decoration:underline; margin-bottom:16px;" href="#">Still stuck? Try direct App Store link</a>
-  <a class="btn primary" target="_blank" rel="noopener" href="https://play.google.com/store/apps/details?id=com.testapps.adhd">
-    &#9654; Android — Google Play
-  </a>
-  <a class="btn primary" target="_blank" rel="noopener" href="https://apps.apple.com/nz/app/adhd-test-app/id6737468288">
-    &#9654; iPhone / iPad — App Store
-  </a>
-  <a class="btn" href="https://www.trumpprogressbarpage.com/">
-    Back to site
-  </a>
-</div>
-<noscript><style>#wrap{visibility:visible !important;}</style></noscript>
+<noscript>
+  <p style="color:#fff;font-family:Helvetica,Arial,sans-serif;text-align:center;padding:40px 20px;">
+    <a href="https://www.trumpprogressbarpage.com/?promo=adhdtest" style="color:#FD9F0F;">Continue to the ADHD test</a>
+  </p>
+</noscript>
 </body>
 </html>
