@@ -8,7 +8,8 @@
   html, body { height: 100%; margin: 0; background: #000; }
 </style>
 <script>
-  window.location.replace('https://www.trumpprogressbarpage.com/?promo=iqtest');
+  try { sessionStorage.setItem('promo', 'iqtest'); } catch (e) {}
+  window.location.replace('https://www.trumpprogressbarpage.com/');
 </script>
 </head>
 <body>

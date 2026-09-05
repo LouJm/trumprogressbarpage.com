@@ -1413,8 +1413,10 @@
       }
     };
 
-    var params = new URLSearchParams(window.location.search);
-    var promo = PROMOS[params.get('promo')];
+    var promoKey = null;
+    try { promoKey = sessionStorage.getItem('promo'); } catch (e) {}
+    if (!promoKey) promoKey = new URLSearchParams(window.location.search).get('promo');
+    var promo = PROMOS[promoKey];
     if (!promo) return;
 
     var ua = navigator.userAgent || '';
@@ -1440,10 +1442,9 @@
     function hidePopup() {
       $('iqp-overlay').style.display = 'none';
       $('iqp-pointer').style.display = 'none';
-      if (window.history.replaceState) {
-        params.delete('promo');
-        var qs = params.toString();
-        window.history.replaceState(null, '', window.location.pathname + (qs ? '?' + qs : ''));
+      try { sessionStorage.removeItem('promo'); } catch (e) {}
+      if (window.history.replaceState && window.location.search) {
+        window.history.replaceState(null, '', window.location.pathname);
       }
     }
 

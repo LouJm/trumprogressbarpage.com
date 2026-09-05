@@ -54,7 +54,7 @@ Uses Firebase JS SDK v12 loaded from CDN (no npm).
 - Player name persisted in `localStorage` (`playerName`) and auto-submitted on retry.
 
 #### 4. App promo popup (inline `<script>`, ~lines 1401–1478)
-Inert unless the page is loaded with `?promo=iqtest` or `?promo=adhdtest` in the URL, so it never affects normal visitors. One shared popup serves both apps; the `PROMOS` config object maps the query value to that app's eyebrow text and App/Play Store URLs, and `$('iqp-eyebrow').textContent` is set from it at runtime. Add a new app promo by adding a `PROMOS` entry — do not duplicate the popup markup/script.
+Inert unless triggered by `sessionStorage.getItem('promo')` being `'iqtest'`/`'adhdtest'` (set by the redirect pages below before they land here) — a `?promo=iqtest`/`?promo=adhdtest` query param is checked as a fallback for direct links or JS-disabled `<noscript>` links. Either way it never affects normal visitors landing on `/` directly. One shared popup serves both apps; the `PROMOS` config object maps the key to that app's eyebrow text and App/Play Store URLs, and `$('iqp-eyebrow').textContent` is set from it at runtime. Add a new app promo by adding a `PROMOS` entry — do not duplicate the popup markup/script. Using `sessionStorage` instead of a persistent query param keeps the visible URL clean (`trumpprogressbarpage.com/`, no `?promo=...`) once the redirect lands.
 - Markup (`#iqp-overlay`, `#iqp-card`, etc.) sits in the body near the bottom, styled in the main `<style>` block; overlay uses `backdrop-filter: blur()` over the real (unmodified) homepage content behind it.
 - On mobile (iOS/Android UA), for **non**-in-app browsers it attempts an immediate silent redirect to the App/Play Store; only reveals the popup if the page is still visible after ~1.2 s (checked live via `document.hidden`, not a sticky flag — a transient native "leave app?" prompt can blur/hide the page without actually navigating away).
 - For **known in-app browsers** (Instagram/FB/TikTok/Snapchat/etc., matched via UA regex) it skips the blind auto-redirect entirely — an unsolicited store navigation can hang or wipe the page in these WebViews — and shows the popup immediately instead.
@@ -64,9 +64,9 @@ Inert unless the page is loaded with `?promo=iqtest` or `?promo=adhdtest` in the
 
 ### Standalone app-store redirect pages
 
-Separate from `index.html`, used as Instagram bio-link landing pages for third-party apps. All four are byte-identical in pattern (differ only in the `?promo=` value/title): thin redirects (`window.location.replace(...)`) into the shared popup at `index.html?promo=<name>`. Kept as separate files/filenames only so old or cached bio links keep resolving — when editing this flow, edit the popup in `index.html`, not these files.
-- `iq-test.html`, `iqapp.html`, `IQTEST.html` → `?promo=iqtest`
-- `adhdapp.html` → `?promo=adhdtest`
+Separate from `index.html`, used as Instagram bio-link landing pages for third-party apps. All four are byte-identical in pattern (differ only in the promo key/title): each sets `sessionStorage.setItem('promo', '<key>')` then `window.location.replace('https://www.trumpprogressbarpage.com/')` (bare homepage, no query string), with a `<noscript>` fallback link to `/?promo=<key>` for the rare JS-disabled case. Kept as separate files/filenames only so old or cached bio links keep resolving — when editing this flow, edit the popup in `index.html`, not these files.
+- `iq-test.html`, `iqapp.html`, `IQTEST.html` → promo key `iqtest`
+- `adhdapp.html` → promo key `adhdtest`
 
 ## Key constraints
 
