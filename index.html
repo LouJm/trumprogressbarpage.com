@@ -396,6 +396,14 @@
     cursor: pointer;
   }
   #iqp-quit:hover { color: #fff; }
+  #iqp-icon {
+    display: block;
+    width: 84px;
+    height: 84px;
+    margin: 0 auto 16px;
+    border-radius: 19px;
+    border: 1px solid rgba(255,255,255,0.12);
+  }
   .iqp-eyebrow {
     font-size: 12px;
     font-weight: 700;
@@ -534,6 +542,7 @@
 <div id="iqp-overlay">
   <div id="iqp-card">
     <button id="iqp-quit" aria-label="Close">&times;</button>
+    <img id="iqp-icon" alt="">
     <div class="iqp-eyebrow" id="iqp-eyebrow">Free IQ Test</div>
     <h2 id="iqp-title">Ready to Begin</h2>
     <button class="iqp-btn" id="iqp-continue">Continue</button>
@@ -1403,16 +1412,22 @@
     var PROMOS = {
       iqtest: {
         eyebrow: 'Free IQ Test',
+        name: 'IQ Test - Aptitude Test',
+        icon: 'promo-icons/iqtest.png',
         storeIOS: 'https://apps.apple.com/us/app/iq-test-aptitude-test/id1505911173',
         storeAndroid: 'https://play.google.com/store/apps/details?id=com.blueiq.test'
       },
       adhdtest: {
         eyebrow: 'Free ADHD Test',
+        name: 'ADHD Test App',
+        icon: 'promo-icons/adhdtest.png',
         storeIOS: 'https://apps.apple.com/nz/app/adhd-test-app/id6737468288',
         storeAndroid: 'https://play.google.com/store/apps/details?id=com.testapps.adhd'
       },
       autismtest: {
         eyebrow: 'Free Autism Test',
+        name: 'Autism Test - ASD',
+        icon: 'promo-icons/autismtest.png',
         storeIOS: 'https://apps.apple.com/us/app/autism-test-asd/id6742079322',
         storeAndroid: 'https://play.google.com/store/apps/details?id=com.testapps.autismtest'
       }
@@ -1436,6 +1451,9 @@
     function $(id) { return document.getElementById(id); }
 
     $('iqp-eyebrow').textContent = promo.eyebrow;
+    $('iqp-title').textContent = promo.name;
+    $('iqp-icon').src = promo.icon;
+    $('iqp-icon').alt = promo.name;
 
     var shown = false;
     function showPopup() {
